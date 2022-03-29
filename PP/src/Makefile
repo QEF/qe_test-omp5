@@ -5,7 +5,8 @@ include ../../make.inc
 # location of needed modules and included files (if any)
 MODFLAGS= $(BASEMOD_FLAGS) \
           $(MOD_FLAG)../../PW/src \
-          $(MOD_FLAG)../../dft-d3/
+          $(MOD_FLAG)../../dft-d3/ \
+					$(MOD_FLAG)./
 
 PPOBJS = \
 adduscore.o \
@@ -51,6 +52,7 @@ write_p_avg.o \
 write_proj.o \
 write_io_header.o \
 write_hamiltonians.o \
+pp_test.f90 \
 xc_vdW_scale_mod.o   # added by Yang Jiao
 
 PWOBJS = ../../PW/src/libpw.a ../../KS_Solvers/libks_solvers.a ../../dft-d3/libdftd3qe.a 
@@ -64,7 +66,7 @@ all : tldeps open_grid.x average.x bands.x dos.x epsilon.x initial_state.x fs.x 
       plan_avg.x plotband.x plotproj.x plotrho.x pmw.x pp.x projwfc.x \
       pawplot.x sumpdos.x pw2wannier90.x pw2critic.x pw2gw.x pw2gt.x \
       wannier_ham.x wannier_plot.x molecularpdos.x \
-      pw2bgw.x wfck2r.x fermi_velocity.x fermi_proj.x ppacf.x
+      pw2bgw.x wfck2r.x fermi_velocity.x fermi_proj.x ppacf.x test_hpsi.x 
 
 
 libpp.a : $(PPOBJS) 
@@ -165,6 +167,10 @@ pw2gw.x : pw2gw.o libpp.a $(MODULES)
 sumpdos.x : sumpdos.o 
 	$(LD) $(LDFLAGS) -o $@ sumpdos.o $(MODULES) $(QELIBS)
 	- ( cd ../../bin ; ln -fs ../PP/src/$@ . )
+
+test_hpsi.x : pp_test.o
+	$(LD) $(LDFLAGS) -o $@ pp_test.o libpp.a $(MODULES) $(QELIBS)
+	- ( cd ../../bin ; ln -fs ../PP/src/$@)
 
 epsilon.x : epsilon.o libpp.a $(MODULES) 
 	$(LD) $(LDFLAGS) -o $@ epsilon.o libpp.a $(MODULES) \
