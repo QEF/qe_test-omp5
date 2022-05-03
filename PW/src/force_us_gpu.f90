@@ -18,9 +18,11 @@ SUBROUTINE force_us_gpu( forcenl )
   USE klist,                ONLY : nks, xk, ngk, igk_k
 #if defined(__OPENMP_GPU)
   USE gvect,                ONLY : g
+  USE wavefunctions_gpum,   ONLY : using_evc, using_evc_d
 #else
   USE klist,                ONLY : igk_k_d
   USE gvect_gpum,           ONLY : g_d
+  USE wavefunctions_gpum,   ONLY : evc_d, using_evc, using_evc_d
 #endif
   USE uspp,                 ONLY : nkb, vkb, qq_at, deeq, qq_so, deeq_nc, ofsbeta
   USE uspp_param,           ONLY : upf, nh, nhm
@@ -28,7 +30,6 @@ SUBROUTINE force_us_gpu( forcenl )
   USE lsda_mod,             ONLY : lsda, current_spin, isk, nspin
   USE symme,                ONLY : symvector
   USE wavefunctions,        ONLY : evc
-  USE wavefunctions_gpum,   ONLY : evc_d, using_evc, using_evc_d
   USE noncollin_module,     ONLY : npol, noncolin
   USE io_files,             ONLY : iunwfc, nwordwfc
   USE buffers,              ONLY : get_buffer

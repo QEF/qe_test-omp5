@@ -7,7 +7,7 @@
 !
 
 #if defined(__CUDA)
-#define PINMEM ,PINNED 
+#define PINMEM ,PINNED
 #else
 #define PINMEM
 #endif
@@ -21,7 +21,7 @@ MODULE uspp
   !
   USE upf_kinds,   ONLY: DP
   USE upf_params,  ONLY: lmaxx, lqmax
-  USE upf_spinorb, ONLY: is_spinorbit, fcoef, fcoef_d 
+  USE upf_spinorb, ONLY: is_spinorbit, fcoef, fcoef_d
   IMPLICIT NONE
   PRIVATE
   SAVE
@@ -33,8 +33,8 @@ MODULE uspp
             dvan_d, deeq_d, qq_at_d, qq_nt_d, nhtoj_d, ijtoh_d, &
             becsum_d, ebecsum_d
   PUBLIC :: okvan, nlcc_any
-  PUBLIC :: qq_so,   dvan_so,   deeq_nc,   fcoef 
-  PUBLIC :: qq_so_d, dvan_so_d, deeq_nc_d, fcoef_d 
+  PUBLIC :: qq_so,   dvan_so,   deeq_nc,   fcoef
+  PUBLIC :: qq_so_d, dvan_so_d, deeq_nc_d, fcoef_d
   PUBLIC :: dbeta
   !
   PUBLIC :: allocate_uspp, deallocate_uspp
@@ -45,13 +45,13 @@ MODULE uspp
        nlx  = (lmaxx+1)**2, &! maximum number of combined angular momentum
        mx   = 2*lqmax-1      ! maximum magnetic angular momentum of Q
   !
-  INTEGER ::             &! for each pair of combined momenta lm(1),lm(2): 
+  INTEGER ::             &! for each pair of combined momenta lm(1),lm(2):
        lpx(nlx,nlx),     &! maximum combined angular momentum LM
        lpl(nlx,nlx,mx)    ! list of combined angular momenta  LM
   REAL(DP) :: ap(lqmax*lqmax,nlx,nlx)
                           ! Clebsch-Gordan coefficients for spherical harmonics
   ! GPU vars
-  INTEGER, ALLOCATABLE ::  & ! for each pair of combined momenta lm(1),lm(2): 
+  INTEGER, ALLOCATABLE ::  & ! for each pair of combined momenta lm(1),lm(2):
        lpx_d(:,:),         & ! maximum combined angular momentum LM
        lpl_d(:,:,:)          ! list of combined angular momenta  LM
   REAL(DP), ALLOCATABLE :: ap_d(:,:,:)
@@ -68,7 +68,7 @@ MODULE uspp
        nhtol(:,:),       &! correspondence n <-> angular momentum l
        nhtolm(:,:),      &! correspondence n <-> combined lm index for (l,m)
        ijtoh(:,:,:),     &! correspondence beta indexes ih,jh -> composite index ijh
-       ofsbeta(:)      ! first beta (index in the solid) for each atom 
+       ofsbeta(:)      ! first beta (index in the solid) for each atom
   !
   ! GPU vars
   !
@@ -84,9 +84,9 @@ MODULE uspp
   LOGICAL :: &
        okvan = .FALSE.,&  ! if .TRUE. at least one pseudo is Vanderbilt
        nlcc_any=.FALSE.   ! if .TRUE. at least one pseudo has core corrections
-  ! 
+  !
   !FIXME use !$acc declare create(vkb) to create and delete it automatically in the device
-  !           be carefull cp still uses  vkb_d for device  
+  !           be carefull cp still uses  vkb_d for device
   COMPLEX(DP), ALLOCATABLE, TARGET PINMEM :: &
        vkb(:,:)                ! all beta functions in reciprocal space
   REAL(DP), ALLOCATABLE :: &
@@ -95,15 +95,15 @@ MODULE uspp
        ebecsum(:,:,:)          ! \sum_i f(i) et(i) <psi(i)|beta_l><beta_m|psi(i)>
   REAL(DP), ALLOCATABLE PINMEM :: &
        dvan(:,:,:),           &! the D functions of the solid
-       deeq(:,:,:,:),         &! the integral of V_eff and Q_{nm} 
+       deeq(:,:,:,:),         &! the integral of V_eff and Q_{nm}
        qq_nt(:,:,:),          &! the integral of q functions in the solid (ONE PER NTYP) used to be the qq array
-       qq_at(:,:,:),          &! the integral of q functions in the solid (ONE PER ATOM !!!!) 
+       qq_at(:,:,:),          &! the integral of q functions in the solid (ONE PER ATOM !!!!)
        nhtoj(:,:)              ! correspondence n <-> total angular momentum
   !
   COMPLEX(DP), ALLOCATABLE :: & ! variables for spin-orbit/noncolinear case:
        qq_so(:,:,:,:),           &! Q_{nm}
        dvan_so(:,:,:,:),         &! D_{nm}
-       deeq_nc(:,:,:,:)           ! \int V_{eff}(r) Q_{nm}(r) dr 
+       deeq_nc(:,:,:,:)           ! \int V_{eff}(r) Q_{nm}(r) dr
   !
   ! GPU vars
   !
@@ -154,7 +154,7 @@ CONTAINS
     implicit none
     !
     ! input: the maximum li considered
-    !  
+    !
     integer :: lli
     !
     ! local variables
@@ -174,10 +174,10 @@ CONTAINS
     if (2*lli-1 > lqmax) &
          call upf_error('aainit','ap leading dimension is too small',llx)
 
-    allocate (r( 3, llx ))    
-    allocate (rr( llx ))    
-    allocate (ylm( llx, llx ))    
-    allocate (mly( llx, llx ))    
+    allocate (r( 3, llx ))
+    allocate (rr( llx ))
+    allocate (ylm( llx, llx ))
+    allocate (mly( llx, llx ))
 
     r(:,:)   = 0.0_DP
     ylm(:,:) = 0.0_DP
@@ -211,7 +211,7 @@ CONTAINS
           end do
        end do
     end do
-    ! 
+    !
     deallocate(mly)
     deallocate(ylm)
     deallocate(rr)
@@ -247,7 +247,7 @@ CONTAINS
     !
     integer  :: ir
     real(DP) :: costheta, sintheta, phi
-    
+
     do ir = 1, llx
        costheta = 2.0_DP * randy() - 1.0_DP
        sintheta = SQRT ( 1.0_DP - costheta*costheta)
@@ -257,44 +257,44 @@ CONTAINS
        r (3,ir) = costheta
        rr(ir)   = 1.0_DP
     end do
-    
+
     return
   end subroutine gen_rndm_r
 !
 !------------------------------------------------------------------------
    FUNCTION randy ( irand )
       !------------------------------------------------------------------------
-      !   
+      !
       ! x=randy(n): reseed with initial seed idum=n ( 0 <= n <= ic, see below)
       !             if randy is not explicitly initialized, it will be
       !             initialized with seed idum=0 the first time it is called
       ! x=randy() : generate uniform real(DP) numbers x in [0,1]
-      !   
+      !
       use upf_kinds, only : DP
       implicit none
       !
       REAL(DP) :: randy
       INTEGER, optional    :: irand
-      !   
+      !
       INTEGER , PARAMETER  :: m    = 714025, &
                               ia   = 1366, &
                               ic   = 150889, &
                               ntab = 97
-      REAL(DP), PARAMETER  :: rm = 1.0_DP / m 
+      REAL(DP), PARAMETER  :: rm = 1.0_DP / m
       INTEGER              :: j
       INTEGER, SAVE        :: ir(ntab), iy, idum=0
       LOGICAL, SAVE        :: first=.true.
-      !   
+      !
       IF ( present(irand) ) THEN
-         idum = MIN( ABS(irand), ic) 
+         idum = MIN( ABS(irand), ic)
          first=.true.
       END IF
 
       IF ( first ) THEN
-         !   
+         !
          first = .false.
-         idum = MOD( ic - idum, m ) 
-         !   
+         idum = MOD( ic - idum, m )
+         !
          DO j=1,ntab
             idum=mod(ia*idum+ic,m)
             ir(j)=idum
@@ -308,9 +308,9 @@ CONTAINS
       randy=iy*rm
       idum=mod(ia*idum+ic,m)
       ir(j)=idum
-      !   
+      !
       RETURN
-      !   
+      !
    END FUNCTION randy
   !
   !-----------------------------------------------------------------------
@@ -324,7 +324,7 @@ CONTAINS
     integer :: &
          llx,         &! the dimension of ylm and mly
          l,li,lj       ! the arguments of the array ap
-    
+
     real(DP) :: &
          compute_ap,  &! this function
          ylm(llx,llx),&! the real spherical harmonics for array r
@@ -333,12 +333,12 @@ CONTAINS
     ! here the local variables
     !
     integer :: ir
-    
+
     compute_ap = 0.0_DP
     do ir = 1,llx
        compute_ap = compute_ap + mly(l,ir)*ylm(ir,li)*ylm(ir,lj)
     end do
-    
+
     return
   end function compute_ap
   !
@@ -421,11 +421,12 @@ CONTAINS
     IF( ALLOCATED( nhtoj ) )      DEALLOCATE( nhtoj )
     IF( ALLOCATED( ofsbeta ) ) DEALLOCATE( ofsbeta )
     IF( ALLOCATED( ijtoh ) )      DEALLOCATE( ijtoh )
-!FIXME in order to be created and deleted automatically by using !$acc declare create(vkb) in 
+!FIXME in order to be created and deleted automatically by using !$acc declare create(vkb) in
     IF( ALLOCATED( vkb ) ) THEN
-!$acc exit data delete(vkb ) 
+!$acc exit data delete(vkb )
+!$omp target exit data map(delete:vkb)
         DEALLOCATE( vkb )
-    END IF 
+    END IF
     IF( ALLOCATED( becsum ) )     DEALLOCATE( becsum )
     IF( ALLOCATED( ebecsum ) )    DEALLOCATE( ebecsum )
     IF( ALLOCATED( qq_at ) )      DEALLOCATE( qq_at )
@@ -469,6 +470,6 @@ CONTAINS
   !  0 -> in , the variable needs to be synchronized but won't be changed
   !  1 -> inout , the variable needs to be synchronized AND will be changed
   !  2 -> out , NO NEED to synchronize the variable, everything will be overwritten
-  ! 
+  !
 END MODULE uspp
 

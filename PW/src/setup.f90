@@ -101,8 +101,8 @@ SUBROUTINE setup()
   LOGICAL  :: magnetic_sym, skip_equivalence=.FALSE.
   REAL(DP) :: iocc, ionic_charge, one
   !
-  TYPE(output_type)  :: output_obj 
-  !  
+  TYPE(output_type)  :: output_obj
+  !
   ! ... okvan/okpaw = .TRUE. : at least one pseudopotential is US/PAW
   !
   okvan = ANY( upf(1:ntyp)%tvanp )
@@ -159,10 +159,10 @@ SUBROUTINE setup()
         ionic_charge = ionic_charge + zv( ityp(na) )
      END DO
 #else
-     ionic_charge = SUM( zv(ityp(1:nat)) ) 
+     ionic_charge = SUM( zv(ityp(1:nat)) )
 #endif
   !
-  ! ... set the number of electrons 
+  ! ... set the number of electrons
   !
   nelec = ionic_charge - tot_charge
   !
@@ -176,7 +176,7 @@ SUBROUTINE setup()
           & TRIM(xmlfile()), ierr )
      IF (ionode) CALL qexsd_copy_efermi ( output_obj%band_structure, &
           nelec, ef, two_fermi_energies, ef_up, ef_dw )
-     ! convert to Ry a.u. 
+     ! convert to Ry a.u.
      ef = ef*e2
      ef_up = ef_up*e2
      ef_dw = ef_dw*e2
@@ -357,8 +357,8 @@ SUBROUTINE setup()
      !
   ELSE IF ( .NOT. lscf ) THEN
      !
-     ! ... do not allow convergence threshold of scf and nscf to become too small 
-     ! 
+     ! ... do not allow convergence threshold of scf and nscf to become too small
+     !
      IF ( ethr == 0.D0 ) ethr = MAX(1.D-13, 0.1D0 * MIN( 1.D-2, tr2 / nelec ))
      !
   ELSE
@@ -411,8 +411,8 @@ SUBROUTINE setup()
   ! ... set the max number of bands used in iterative diagonalization
   !
   nbndx = nbnd
-  IF ( isolve == 0  ) nbndx = david * nbnd 
-  IF (isolve == 4 ) nbndx = 2 *nbnd 
+  IF ( isolve == 0  ) nbndx = david * nbnd
+  IF (isolve == 4 ) nbndx = 2 *nbnd
   !
   ! ... Set the units in real and reciprocal space
   !
@@ -468,7 +468,7 @@ SUBROUTINE setup()
   !
   ! ... time_reversal = use q=>-q symmetry for k-point generation
   !
-  magnetic_sym = noncolin .AND. domag 
+  magnetic_sym = noncolin .AND. domag
   time_reversal = .NOT. noinv .AND. .NOT. magnetic_sym
   !
   ! ... Automatic generation of k-points (if required)
@@ -496,7 +496,7 @@ SUBROUTINE setup()
         !
      END IF
      !
-  ELSE 
+  ELSE
      nkstot = nks_start
      xk(:,1:nkstot) = xk_start(:,1:nks_start)
      wk(1:nkstot) = wk_start(1:nks_start)
@@ -510,7 +510,7 @@ SUBROUTINE setup()
         END IF
 
         IF ( gdir<1 .OR. gdir>3 ) CALL errore('setup','invalid gdir value'&
-                                  &' (valid values: 1=x, 2=y, 3=z)',10) 
+                                  &' (valid values: 1=x, 2=y, 3=z)',10)
         DO ik=1,nkstot
            nx_el(ik,gdir)=ik
         END DO
@@ -532,7 +532,7 @@ SUBROUTINE setup()
      !
      nsym=nrot
      invsym=.true.
-     CALL inverse_s ( ) 
+     CALL inverse_s ( )
      !
   ELSE
      !
@@ -543,7 +543,7 @@ SUBROUTINE setup()
      !
      ! ... do not force FFT grid to be commensurate with fractional translations
      !
-     IF ( allfrac ) fft_fact(:) = 1 
+     IF ( allfrac ) fft_fact(:) = 1
      !
   END IF
   !
@@ -587,7 +587,7 @@ SUBROUTINE setup()
      IF (tetra_type == 0) then
         CALL tetra_init( nsym, s, time_reversal, t_rev, at, bg, npk, k1,k2,k3, &
              nk1, nk2, nk3, nkstot, xk )
-     ELSE 
+     ELSE
         CALL opt_tetra_init(nsym, s, time_reversal, t_rev, at, bg, npk, &
              k1, k2, k3, nk1, nk2, nk3, nkstot, xk, 1)
      END IF
@@ -759,9 +759,9 @@ task:   do np = 2, maxtask
            ! ensure that ntask_group, that coincides with nyfft,
            ! is commensurate with the number of procs for PW parallelization
            if ( mod(nproc_bgrp,np) /= 0 ) cycle
-           if ( nproc_bgrp/np < nr3/4 ) then 
+           if ( nproc_bgrp/np < nr3/4 ) then
               ntask_groups = np
-              exit task 
+              exit task
            end if
         end do task
       end if
@@ -770,7 +770,7 @@ task:   do np = 2, maxtask
   ! Note that "task_groups" require to set pencil_decomposition to .true.
   ! Same if there are more processors than xy planes in the FFT
   !
-  IF ( ntask_groups /= 1 .OR. nproc_bgrp > nr3 ) pencil_decomposition_ = .true. 
+  IF ( ntask_groups /= 1 .OR. nproc_bgrp > nr3 ) pencil_decomposition_ = .true.
   !
   ! printout - same as in environment.f90
   !
@@ -782,7 +782,7 @@ task:   do np = 2, maxtask
   IF ( nproc_bgrp > 1 ) WRITE( stdout, &
          '(5X,"R & G space division:  proc/nbgrp/npool/nimage = ",I7)' ) nproc_bgrp
   IF ( nproc_bgrp > nr3 ) WRITE( stdout, &
-         '(5X,"WARNING: too many processors for an effective parallelization!")' ) 
+         '(5X,"WARNING: too many processors for an effective parallelization!")' )
   IF ( nyfft > 1 ) WRITE( stdout, &
          '(5X,"wavefunctions fft division:  Y-proc x Z-proc = ",2I7)' ) &
          nyfft, nproc_bgrp / nyfft
@@ -811,7 +811,7 @@ LOGICAL FUNCTION check_gpu_support( )
   ! Minimal case: returns true if compiled for GPUs
   IMPLICIT NONE
   !
-#if defined(__CUDA)
+#if defined(__CUDA) || defined(__OPENMP_GPU)
   check_gpu_support = .TRUE.
 #else
   check_gpu_support = .FALSE.

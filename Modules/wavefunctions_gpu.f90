@@ -15,6 +15,9 @@
 !=----------------------------------------------------------------------------=!
 #if defined(__CUDA)
      USE cudafor
+#elif defined(__OPENMP_GPU)
+     USE omp_lib
+     USE dmr, ONLY : omp_target_is_present_f
 #endif
      IMPLICIT NONE
      SAVE
@@ -22,18 +25,20 @@
      INTEGER, PARAMETER :: sgl = selected_real_kind(6,30)
      INTEGER, PARAMETER :: i4b = selected_int_kind(9)
      INTEGER, PARAMETER :: i8b = selected_int_kind(18)
-#if defined (__DEBUG) 
+#if defined (__DEBUG)
      INTEGER :: iverbosity = 1
-#else 
+#else
      INTEGER :: iverbosity = 0
 #endif
      !
+#if !defined(__OPENMP_GPU)
      COMPLEX(DP), ALLOCATABLE, TARGET :: evc_d(:, :)
      COMPLEX(DP), ALLOCATABLE :: psic_d(:)
      COMPLEX(DP), ALLOCATABLE :: psic_nc_d(:, :)
      !
 #if defined(__CUDA)
      attributes (DEVICE) :: evc_d, psic_d, psic_nc_d
+#endif
 #endif
 
      LOGICAL :: evc_ood = .false.    ! used to flag out of date variables
@@ -63,7 +68,11 @@
          IF (PRESENT(debug_info) ) print *, "using_evc ", debug_info, evc_ood
          !
          IF (evc_ood) THEN
+#if !defined(__OPENMP_GPU)
              IF ((.not. allocated(evc_d)) .and. (intento_ < 2)) THEN
+#else
+             IF ((.not. omp_target_is_present_f(evc, omp_get_default_device()) .and. (intento_ < 2)) THEN
+#endif
                 CALL errore('using_evc_d', 'PANIC: sync of evc from evc_d with unallocated array. Bye!!', 1)
                 stop
              END IF
@@ -76,7 +85,11 @@
              END IF
              IF (intento_ < 2) THEN
                 IF ( iverbosity > 0 ) print *, "Really copied evc D->H"
+#if !defined(__OPENMP_GPU)
                 evc = evc_d
+#else
+                !$omp target update from(evc)
+#endif
              END IF
              evc_ood = .false.
          ENDIF
@@ -90,13 +103,17 @@
          implicit none
          INTEGER, INTENT(IN) :: intento
          CHARACTER(len=*), INTENT(IN), OPTIONAL :: debug_info
-#if defined(__CUDA) || defined(__CUDA_GNU)
+#if defined(__CUDA) || defined(__CUDA_GNU) || defined(__OPENMP_GPU)
          !
          IF (PRESENT(debug_info) ) print *, "using_evc_d ", debug_info, evc_d_ood
          !
          IF (.not. allocated(evc)) THEN
              IF (intento /= 2) print *, "WARNING: sync of evc_d with unallocated array and intento /= 2?"
+#if !defined(__OPENMP_GPU)
              IF (allocated(evc_d)) DEALLOCATE(evc_d)
+#else
+             !$omp target exit data map(delete:evc)
+#endif
              evc_d_ood = .false.
              RETURN
          END IF
@@ -107,11 +124,21 @@
          END IF
          !
          IF (evc_d_ood) THEN
+#if !defined(__OPENMP_GPU)
              IF ( allocated(evc_d) .and. (SIZE(evc_d)/=SIZE(evc))) deallocate(evc_d)
              IF (.not. allocated(evc_d)) ALLOCATE(evc_d(DIMS2D(evc)))  ! MOLD does not work on all compilers
+#else
+             IF (.not. omp_target_is_present_f(evc, omp_get_default_device())) THEN
+                !$omp target enter data map(alloc:evc)
+             ENDIF
+#endif
              IF (intento < 2) THEN
                 IF ( iverbosity > 0 ) print *, "Really copied evc H->D"
+#if !defined(__OPENMP_GPU)
                 evc_d = evc
+#else
+                !$omp target update to(evc)
+#endif
              END IF
              evc_d_ood = .false.
          ENDIF
@@ -132,14 +159,18 @@
          implicit none
          INTEGER, INTENT(IN) :: intento
          CHARACTER(len=*), INTENT(IN), OPTIONAL :: debug_info
-#if defined(__CUDA)  || defined(__CUDA_GNU)
+#if defined(__CUDA) || defined(__CUDA_GNU) || defined(__OPENMP_GPU)
          INTEGER :: intento_
          intento_ = intento
          !
          IF (PRESENT(debug_info) ) print *, "using_psic ", debug_info, psic_ood
          !
          IF (psic_ood) THEN
+#if !defined(__OPENMP_GPU)
              IF ((.not. allocated(psic_d)) .and. (intento_ < 2)) THEN
+#else
+             IF ((.not. omp_target_is_present_f(psic, omp_get_default_device())) .and. (intento_ < 2)) THEN
+#endif
                 CALL errore('using_psic_d', 'PANIC: sync of psic from psic_d with unallocated array. Bye!!', 1)
                 stop
              END IF
@@ -152,7 +183,11 @@
              END IF
              IF (intento_ < 2) THEN
                 IF ( iverbosity > 0 ) print *, "Really copied psic D->H"
+#if !defined(__OPENMP_GPU)
                 psic = psic_d
+#else
+                !$omp target update from(psic)
+#endif
              END IF
              psic_ood = .false.
          ENDIF
@@ -166,13 +201,17 @@
          implicit none
          INTEGER, INTENT(IN) :: intento
          CHARACTER(len=*), INTENT(IN), OPTIONAL :: debug_info
-#if defined(__CUDA) || defined(__CUDA_GNU)
+#if defined(__CUDA) || defined(__CUDA_GNU) || defined(__OPENMP_GPU)
          !
          IF (PRESENT(debug_info) ) print *, "using_psic_d ", debug_info, psic_d_ood
          !
          IF (.not. allocated(psic)) THEN
              IF (intento /= 2) print *, "WARNING: sync of psic_d with unallocated array and intento /= 2?"
+#if !defined(__OPENMP_GPU)
              IF (allocated(psic_d)) DEALLOCATE(psic_d)
+#else
+             !$omp target exit data map(delete:psic)
+#endif
              psic_d_ood = .false.
              RETURN
          END IF
@@ -183,11 +222,21 @@
          END IF
          !
          IF (psic_d_ood) THEN
+#if !defined(__OPENMP_GPU)
              IF ( allocated(psic_d) .and. (SIZE(psic_d)/=SIZE(psic))) deallocate(psic_d)
              IF (.not. allocated(psic_d)) ALLOCATE(psic_d(DIMS1D(psic)))  ! MOLD does not work on all compilers
+#else
+             IF (.not. omp_target_is_present_f(psic, omp_get_default_device())) THEN
+                !$omp target enter data map(alloc:psic)
+             ENDIF
+#endif
              IF (intento < 2) THEN
                 IF ( iverbosity > 0 ) print *, "Really copied psic H->D"
+#if !defined(__OPENMP_GPU)
                 psic_d = psic
+#else
+                !$omp target update to(psic)
+#endif
              END IF
              psic_d_ood = .false.
          ENDIF
@@ -208,14 +257,18 @@
          implicit none
          INTEGER, INTENT(IN) :: intento
          CHARACTER(len=*), INTENT(IN), OPTIONAL :: debug_info
-#if defined(__CUDA)  || defined(__CUDA_GNU)
+#if defined(__CUDA) || defined(__CUDA_GNU) || defined(__OPENMP_GPU)
          INTEGER :: intento_
          intento_ = intento
          !
          IF (PRESENT(debug_info) ) print *, "using_psic_nc ", debug_info, psic_nc_ood
          !
          IF (psic_nc_ood) THEN
+#if !defined(__OPENMP_GPU)
              IF ((.not. allocated(psic_nc_d)) .and. (intento_ < 2)) THEN
+#else
+             IF ((.not. omp_target_is_present_f(psic_nc, omp_get_default_device())) .and. (intento_ < 2)) THEN
+#endif
                 CALL errore('using_psic_nc_d', 'PANIC: sync of psic_nc from psic_nc_d with unallocated array. Bye!!', 1)
                 stop
              END IF
@@ -228,7 +281,11 @@
              END IF
              IF (intento_ < 2) THEN
                 IF ( iverbosity > 0 ) print *, "Really copied psic_nc D->H"
+#if !defined(__OPENMP_GPU)
                 psic_nc = psic_nc_d
+#else
+                !$omp target update from(psic_nc)
+#endif
              END IF
              psic_nc_ood = .false.
          ENDIF
@@ -242,13 +299,17 @@
          implicit none
          INTEGER, INTENT(IN) :: intento
          CHARACTER(len=*), INTENT(IN), OPTIONAL :: debug_info
-#if defined(__CUDA) || defined(__CUDA_GNU)
+#if defined(__CUDA) || defined(__CUDA_GNU) || defined(__OPENMP_GPU)
          !
          IF (PRESENT(debug_info) ) print *, "using_psic_nc_d ", debug_info, psic_nc_d_ood
          !
          IF (.not. allocated(psic_nc)) THEN
              IF (intento /= 2) print *, "WARNING: sync of psic_nc_d with unallocated array and intento /= 2?"
+#if !defined(__OPENMP_GPU)
              IF (allocated(psic_nc_d)) DEALLOCATE(psic_nc_d)
+#else
+             !$omp target exit data map(delete:psic_nc)
+#endif
              psic_nc_d_ood = .false.
              RETURN
          END IF
@@ -259,11 +320,21 @@
          END IF
          !
          IF (psic_nc_d_ood) THEN
+#if !defined(__OPENMP_GPU)
              IF ( allocated(psic_nc_d) .and. (SIZE(psic_nc_d)/=SIZE(psic_nc))) deallocate(psic_nc_d)
              IF (.not. allocated(psic_nc_d)) ALLOCATE(psic_nc_d(DIMS2D(psic_nc)))  ! MOLD does not work on all compilers
+#else
+             IF (.not. omp_target_is_present_f(psic_nc, omp_get_default_device())) THEN
+                !$omp target enter data map(alloc:psic_nc)
+             ENDIF
+#endif
              IF (intento < 2) THEN
                 IF ( iverbosity > 0 ) print *, "Really copied psic_nc H->D"
+#if !defined(__OPENMP_GPU)
                 psic_nc_d = psic_nc
+#else
+                !$omp target update to(psic_nc)
+#endif
              END IF
              psic_nc_d_ood = .false.
          ENDIF
@@ -274,11 +345,21 @@
      END SUBROUTINE using_psic_nc_d
      !
      SUBROUTINE deallocate_wavefunctions_gpu
+       !
+#if defined(__OPENMP_GPU)
+       USE wavefunctions, ONLY : evc, psic, psic_nc
+#endif
+#if !defined(__OPENMP_GPU)
        IF( ALLOCATED( evc_d ) ) DEALLOCATE( evc_d )
-       evc_d_ood = .false.
        IF( ALLOCATED( psic_d ) ) DEALLOCATE( psic_d )
-       psic_d_ood = .false.
        IF( ALLOCATED( psic_nc_d ) ) DEALLOCATE( psic_nc_d )
+#else
+       !$omp target exit data map(delete:evc)
+       !$omp target exit data map(delete:psic)
+       !$omp target exit data map(delete:psic_nc)
+#endif
+       evc_d_ood = .false.
+       psic_d_ood = .false.
        psic_nc_d_ood = .false.
      END SUBROUTINE deallocate_wavefunctions_gpu
 !=----------------------------------------------------------------------------=!

@@ -9,8 +9,8 @@
 !----------------------------------------------------------------------------
 SUBROUTINE allocate_wfc()
   !----------------------------------------------------------------------------
-  !! Dynamical allocation of arrays: wavefunctions.  
-  !! Requires dimensions: \(\text{npwx}\), \(\text{nbnd}\), \(\text{npol}\), 
+  !! Dynamical allocation of arrays: wavefunctions.
+  !! Requires dimensions: \(\text{npwx}\), \(\text{nbnd}\), \(\text{npol}\),
   !! \(\text{natomwfc}\), \(\text{nwfcU}\).
   !
   USE io_global,           ONLY : stdout
@@ -44,9 +44,9 @@ SUBROUTINE allocate_wfc_k()
   !----------------------------------------------------------------------------
   !! Dynamical allocation of k-point-dependent arrays: wavefunctions, betas
   !! kinetic energy, k+G indices. Computes max no. of plane waves \(\text{npwx}\)
-  !! and k+G indices \(\text{igk_k}\) (needs G-vectors and cutoff \(\text{gcutw}\)).  
+  !! and k+G indices \(\text{igk_k}\) (needs G-vectors and cutoff \(\text{gcutw}\)).
   !! Requires dimensions \(\text{nbnd}\), \(\text{npol}\), \(\text{natomwfc}\),
-  !! \(\text{nwfcU}\).  
+  !! \(\text{nwfcU}\).
   !! Requires that k-points are set up and distributed (if parallelized).
   !
   USE wvfct,            ONLY : npwx, g2kin
@@ -75,7 +75,9 @@ SUBROUTINE allocate_wfc_k()
   !
   ALLOCATE( vkb(npwx,nkb) )
 #if defined __CUDA
-!$acc enter data create(vkb(1:npwx,1:nkb) ) 
+!$acc enter data create(vkb(1:npwx,1:nkb) )
+#elif defined __OPENMP_GPU
+!$omp target enter data map(alloc:vkb)
 #endif
   !
   !   g2kin contains the kinetic energy \hbar^2(k+G)^2/2m
