@@ -121,40 +121,44 @@ END PROGRAM test_hpsi
 SUBROUTINE run_tests (ik_in, ik_end, write_ref )
 !-----------------------------------------------------------------------
    !
-   USE constants,      ONLY : rytoev
-   USE kinds,          ONLY : DP
-   USE becmod,         ONLY : becp, calbec, allocate_bec_type
-   USE fft_base,       ONLY : dfftp
-   USE klist,          ONLY : xk, nks, nkstot, igk_k, ngk
-   USE lsda_mod,       ONLY : nspin, isk, current_spin
-   USE io_files,       ONLY : restart_dir
-   USE scf,            ONLY : vrs, vltot, v, kedtau
-   USE gvecs,          ONLY : doublegrid
-   USE uspp,           ONLY : nkb, vkb
-   USE uspp_init,      ONLY : init_us_2
-   USE wvfct,          ONLY : npwx, nbnd, current_k
-   USE mp_bands,       ONLY : me_bgrp, root_bgrp, intra_bgrp_comm
-   USE wavefunctions,  ONLY : evc, psic
-   USE pw_restart_new, ONLY : read_collected_wfc
-   USE mp,             ONLY : mp_sum
+   USE constants,        ONLY : rytoev
+   USE kinds,            ONLY : DP
+   USE becmod,           ONLY : becp, calbec, allocate_bec_type
+   USE fft_base,         ONLY : dfftp
+   USE klist,            ONLY : xk, nks, nkstot, igk_k, ngk
+   USE lsda_mod,         ONLY : nspin, isk, current_spin
+   USE io_files,         ONLY : restart_dir
+   USE scf,              ONLY : vrs, vltot, v, kedtau
+   USE gvecs,            ONLY : doublegrid
+   USE uspp,             ONLY : nkb, vkb
+   USE uspp_init,        ONLY : init_us_2
+   USE wvfct,            ONLY : npwx, nbnd, current_k
+   USE mp_bands,         ONLY : me_bgrp, root_bgrp, intra_bgrp_comm
+   USE wavefunctions,    ONLY : evc, psic
+   USE pw_restart_new,   ONLY : read_collected_wfc
+   USE mp,               ONLY : mp_sum
+   USE becmod_subs_gpum, ONLY : calbec_gpu, allocate_bec_type_gpu
    USE test_hpsi_io
+   USE laxlib
    !
    IMPLICIT NONE
    !
    INTEGER, INTENT(IN)  :: ik_in, ik_end
    LOGICAL, INTENT(IN)  :: write_ref
    !
-   INCLUDE 'laxlib.fh'
+   !INCLUDE 'laxlib.fh'
    !
    COMPLEX(DP), ALLOCATABLE :: aux(:,:), aux_check(:,:)
    COMPLEX(DP), ALLOCATABLE :: hc(:,:), sc(:,:), vc(:,:)
    REAL(DP),    ALLOCATABLE :: en(:)
    INTEGER :: ik, npw, ik_start, ik_stop, i, ibnd
    CHARACTER(LEN=320) ::  filename
-   LOGICAL             :: ionode = .TRUE.
+   LOGICAL             :: ionode = .TRUE., use_gpu
    COMPLEX(DP)         :: res
    CHARACTER(LEN=6), EXTERNAL :: int_to_char
+   LOGICAL, EXTERNAL :: check_gpu_support
    !
+   use_gpu = check_gpu_support( )
    call ik_check(ik_in, ik_start, nkstot, 1, write_ref)
    call ik_check(ik_end, ik_stop, nkstot, nkstot, write_ref)
    print *, ik_start, ik_stop
@@ -164,23 +168,34 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
    ALLOCATE( sc( nbnd, nbnd) )
    ALLOCATE( vc( nbnd, nbnd) )
    ALLOCATE( en( nbnd ) )
-   CALL allocate_bec_type(nkb, nbnd, becp )
-   if (use_gpu) CALL allocate_bec_type_gpu(nkb, nbnd, becp)
+   !$omp target enter data map(alloc:aux, hc, sc) if(use_gpu)
+   IF (use_gpu) THEN
+      CALL allocate_bec_type_gpu(nkb, nbnd, becp)
+   ELSE
+      CALL allocate_bec_type(nkb, nbnd, becp )
+   ENDIF
    CALL set_vrs(vrs,vltot,v%of_r,kedtau,v%kin_r,dfftp%nnr,nspin,doublegrid)
 
    DO ik = ik_start, ik_stop
       !
       CALL read_collected_wfc( restart_dir() , ik, evc )
       !
-      npw = ngk(ik)
-      current_k=ik
-      current_spin  = isk(ik)
+      npw          = ngk(ik)
+      current_k    = ik
+      current_spin = isk(ik)
       !
       CALL init_us_2(npw, igk_k(1,ik), xk (1, ik), vkb)
-      CALL calbec( npw, vkb, evc, becp)
-      CALL g2_kin(ik)
+      IF (use_gpu) THEN
+         CALL calbec_gpu( npw, vkb, evc, becp)
+         CALL g2_kin_gpu(ik)
+         CALL h_psi_gpu( npwx, npw, nbnd, evc, aux )
+         !$omp target update from(aux)
+      ELSE
+         CALL calbec( npw, vkb, evc, becp)
+         CALL g2_kin(ik)
+         CALL h_psi( npwx, npw, nbnd, evc, aux )
+      ENDIF
       !
-      CALL h_psi( npwx, npw, nbnd, evc, aux )
       filename = trim(restart_dir())//"hpsi_"//trim(int_to_char(ik))//".dat"
       if (write_ref ) then
          call write_data_serial(filename, npw, nbnd, aux)
@@ -197,7 +212,12 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
          end if
       end if
       !
-      CALL calbec ( npw, evc, aux, hc )
+      IF (use_gpu) THEN
+         CALL calbec_gpu ( npw, evc, aux, hc )
+         !$omp target update from(hc)
+      ELSE
+         CALL calbec ( npw, evc, aux, hc )
+      ENDIF
       filename = trim(restart_dir())//"hc_"//trim(int_to_char(ik))//".dat"
       if (write_ref) then
          call write_data_serial(filename, nbnd, nbnd, hc)
@@ -227,15 +247,26 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
          end if
       end if
       !
-      CALL calbec ( npw, evc, aux, sc )
+      IF (use_gpu) THEN
+         CALL calbec_gpu ( npw, evc, aux, sc )
+         !$omp target update from(sc)
+      ELSE
+         CALL calbec ( npw, evc, aux, sc )
+      ENDIF
       !
-      CALL diaghg( nbnd, nbnd, hc, sc, nbnd, en, vc, me_bgrp, &
-          root_bgrp, intra_bgrp_comm )
+      IF (use_gpu) THEN
+         CALL diaghg( nbnd, nbnd, hc, sc, nbnd, en, vc, me_bgrp, &
+             root_bgrp, intra_bgrp_comm, .TRUE., .TRUE. )
+      ELSE
+         CALL diaghg( nbnd, nbnd, hc, sc, nbnd, en, vc, me_bgrp, &
+             root_bgrp, intra_bgrp_comm, .TRUE. )
+      ENDIF
        !
       print '(/,12x,"k =",3f7.4," (",i6," PWs)  bands (eV):",/)', xk(:,ik),npw
       print '(8f9.4)', en(:)*rytoev
       !
    END DO
+   !$omp target exit data map(delete:aux, hc, sc) if(use_gpu)
    !
    contains
       !

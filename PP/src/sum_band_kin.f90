@@ -1,6 +1,6 @@
 !-----------------------------------------------------------------------
 ! Program written by Yang Jiao,  Oct 2016, GPL, No warranties.
-! 
+!
 ! This subroutine is adapted from SUBROUTINE sum_band from PW/src/sum_band.f90
 ! ----------------------------------------------------------------------
 SUBROUTINE sum_band_kin(kin_r)
@@ -101,7 +101,7 @@ SUBROUTINE sum_band_kin(kin_r)
   IF ( okvan ) CALL allocate_bec_type (nkb,nbnd, becp,intra_bgrp_comm)
   ALLOCATE (kplusg(npwx))
   !
-  ! ... specialized routines are called to sum at Gamma or for each k point 
+  ! ... specialized routines are called to sum at Gamma or for each k point
   ! ... the contribution of the wavefunctions to the charge
   ! ... The band energy contribution eband is computed together with the charge
   !
@@ -130,7 +130,7 @@ SUBROUTINE sum_band_kin(kin_r)
      DO is = 1, nspin
         psic(1:dffts%nnr) = kin_r(1:dffts%nnr,is)
         psic(dffts%nnr+1:) = 0.0_dp
-        CALL fwfft ('Rho', psic, dffts)
+        CALL fwfft (1, psic, dffts)
         kin_g(1:dffts%ngm,is) = psic(dffts%nl(1:dffts%ngm))
         kin_g(dffts%ngm+1:,is) = (0.0_dp,0.0_dp)
      END DO
@@ -141,7 +141,7 @@ SUBROUTINE sum_band_kin(kin_r)
         psic(:) = ( 0.D0, 0.D0 )
         psic(dfftp%nl(:)) = kin_g(:,is)
         IF ( gamma_only ) psic(dfftp%nlm(:)) = CONJG( kin_g(:,is) )
-        CALL invfft ('Rho', psic, dfftp)
+        CALL invfft (1, psic, dfftp)
         kin_r(:,is) = psic(:)
      END DO
      !
@@ -222,7 +222,7 @@ SUBROUTINE sum_band_kin(kin_r)
                                        CONJG( evc(1:npw,ibnd) )
                    END IF
                    !
-                   CALL invfft ('Wave', psic, dffts)
+                   CALL invfft (2, psic, dffts)
                    !
                    ! ... increment the kinetic energy density ...
                    !
@@ -315,7 +315,7 @@ SUBROUTINE sum_band_kin(kin_r)
                       psic(dffts%nl(igk_k(1:npw,ik)))=CMPLX(0d0,kplusg(1:npw),kind=DP) * &
                                               evc(1:npw,ibnd)
                       !
-                      CALL invfft ('Wave', psic, dffts)
+                      CALL invfft (2, psic, dffts)
                       !
                       ! ... increment the kinetic energy density ...
                       !
@@ -380,7 +380,6 @@ SUBROUTINE sum_band_kin(kin_r)
 
      END SUBROUTINE get_rho_gamma
 
-
      SUBROUTINE get_rho_domag(rho_loc, nrxxs_loc, w1_loc, psic_loc)
 
         IMPLICIT NONE
@@ -398,7 +397,7 @@ SUBROUTINE sum_band_kin(kin_r)
            rho_loc(ir,2) = rho_loc(ir,2) + w1_loc*2.D0* &
                           (DBLE(psic_loc(ir,1))* DBLE(psic_loc(ir,2)) + &
                           AIMAG(psic_loc(ir,1))*AIMAG(psic_loc(ir,2)))
- 
+
            rho_loc(ir,3) = rho_loc(ir,3) + w1_loc*2.D0* &
                           (DBLE(psic_loc(ir,1))*AIMAG(psic_loc(ir,2)) - &
                            DBLE(psic_loc(ir,2))*AIMAG(psic_loc(ir,1)))

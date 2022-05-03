@@ -54,7 +54,9 @@ target_link_libraries(qe_pp
         qe_fftx
         qe_upflib
         qe_lax
-        qe_xclib)
+        qe_xclib
+    PUBLIC
+        qe_devxlib)
 
 ###########################################################
 # pp.x

@@ -211,7 +211,7 @@ SUBROUTINE sym_band(filband, spin_component, firstk, lastk)
 !
               IF ( .NOT. high_symmetry(ik-1) ) &
                  high_symmetry(ik)= ((code_group_k(ik)/=code_group_k(ik-1)) &
-                                   .OR. high_symmetry(ik) ) 
+                                   .OR. high_symmetry(ik) )
               IF (dkmod > 1.d-3) dkmod_save=dkmod
            ELSE
 !
@@ -401,7 +401,7 @@ SUBROUTINE find_band_sym (ik,evc,et,nsym,s,ft,gk,invs,rap_et,times,ngroup,&
   psic=(0.0_DP,0.0_DP)
   DO ibnd=1,nbnd
      psic(dfftp%nl(igk_k(1:npw,ik)),ibnd) = evc(1:npw,ibnd)
-     CALL invfft ('Rho', psic(:,ibnd), dfftp)
+     CALL invfft (1, psic(:,ibnd), dfftp)
   ENDDO
   !
   !  scale sym.ops. and fractional translations with FFT grids
@@ -519,7 +519,6 @@ SUBROUTINE find_band_sym (ik,evc,et,nsym,s,ft,gk,invs,rap_et,times,ngroup,&
   RETURN
 END SUBROUTINE find_band_sym
 
-
 SUBROUTINE rotate_all_psi(ik,psic,evcr,s,ftau,gk)
 
   USE kinds,     ONLY : DP
@@ -622,7 +621,7 @@ SUBROUTINE rotate_all_psi(ik,psic,evcr,s,ftau,gk)
      CALL cscatter_sym_many( dfftp, psic_collect, psir, ibnd, nbnd, &
                                                  nbnd_proc, start_band_proc )
      !
-     CALL fwfft ('Rho', psir, dfftp)
+     CALL fwfft (1, psir, dfftp)
      !
      evcr(1:npw,ibnd) = psir(dfftp%nl(igk_k(1:npw,ik)))
   END DO
@@ -658,7 +657,7 @@ SUBROUTINE rotate_all_psi(ik,psic,evcr,s,ftau,gk)
            ENDDO
         ENDDO
      ENDIF
-     CALL fwfft ('Rho', psir, dfftp)
+     CALL fwfft (1, psir, dfftp)
      !
      evcr(1:npw,ibnd) = psir(dfftp%nl(igk_k(1:npw,ik)))
   ENDDO
@@ -953,7 +952,7 @@ SUBROUTINE rotate_all_psi_so(ik,evc_nc,evcr,s,ftau,d_spin,has_e,gk)
      !
      DO ibnd=1,nbnd
         psic(dfftp%nl(igk_k(1:npw,ik)),ibnd) = evc_nc(1:npw,ipol,ibnd)
-        CALL invfft ('Rho', psic(:,ibnd), dfftp)
+        CALL invfft (1, psic(:,ibnd), dfftp)
      ENDDO
      !
 #if defined  (__MPI)
@@ -997,7 +996,7 @@ SUBROUTINE rotate_all_psi_so(ik,evc_nc,evcr,s,ftau,d_spin,has_e,gk)
         !
         CALL cscatter_sym_many(dfftp, psic_collect, psir, ibnd, nbnd, nbnd_proc, &
                                start_band_proc)
-        CALL fwfft ('Rho', psir, dfftp)
+        CALL fwfft (1, psir, dfftp)
         !
         evcr_save(1:npw,ipol,ibnd) = psir(dfftp%nl(igk_k(1:npw,ik)))
      ENDDO
@@ -1030,7 +1029,7 @@ SUBROUTINE rotate_all_psi_so(ik,evc_nc,evcr,s,ftau,d_spin,has_e,gk)
               ENDDO
            ENDDO
         ENDIF
-        CALL fwfft ('Rho', psir(:), dfftp)
+        CALL fwfft (1, psir(:), dfftp)
         !
         evcr_save(1:npw,ipol,ibnd) = psir(dfftp%nl(igk_k(1:npw,ik)))
      ENDDO
@@ -1041,7 +1040,7 @@ SUBROUTINE rotate_all_psi_so(ik,evc_nc,evcr,s,ftau,d_spin,has_e,gk)
   ENDDO
 
   evcr=(0.d0,0.d0)
-  DO ibnd=1,nbnd 
+  DO ibnd=1,nbnd
      DO ipol=1,npol
         DO jpol=1,npol
            evcr(:,ipol,ibnd)=evcr(:,ipol,ibnd)+ &
@@ -1154,7 +1153,6 @@ SUBROUTINE find_info_group(nsym,s,t_rev,ft,d_spink,gk,sname,  &
   INTEGER :: isym, jsym, ss(3,3)
   LOGICAL :: found
 
-
   is_symmorphic=.true.
   search_sym=.true.
 
@@ -1169,7 +1167,7 @@ SUBROUTINE find_info_group(nsym,s,t_rev,ft,d_spink,gk,sname,  &
      DO isym=1,nsym
         DO jsym=1,nsym
            search_sym=search_sym.AND.(ABS(gk(1,isym)*ft(1,jsym)+ &
-                     gk(2,isym)*ft(2,jsym)+gk(3,isym)*ft(3,jsym))<1.D-8) 
+                     gk(2,isym)*ft(2,jsym)+gk(3,isym)*ft(3,jsym))<1.D-8)
         ENDDO
      ENDDO
   ENDIF
@@ -1234,7 +1232,7 @@ SUBROUTINE find_info_group(nsym,s,t_rev,ft,d_spink,gk,sname,  &
            DO jsym=1,nsym_is
               search_sym=search_sym.AND.(ABS(gk_is(1,isym)*ft_is(1,jsym)+ &
                                              gk_is(2,isym)*ft_is(2,jsym)+     &
-                                             gk_is(3,isym)*ft_is(3,jsym))<1.D-8) 
+                                             gk_is(3,isym)*ft_is(3,jsym))<1.D-8)
            ENDDO
         ENDDO
      ENDIF
