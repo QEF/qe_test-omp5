@@ -200,6 +200,7 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
       if (write_ref ) then
          call write_data_serial(filename, npw, nbnd, aux)
       else
+         if (allocated(aux_check)) deallocate(aux_check)  
          allocate (aux_check(npw, nbnd) )
          call read_data_serial (filename, npw, nbnd, aux_check)
          res = (0.d0, 0.d0)

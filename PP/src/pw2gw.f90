@@ -136,7 +136,7 @@ SUBROUTINE compute_gw( omegamin, omegamax, d_omega, use_gmaps, qplda, vkb, vxcdi
   USE control_flags, ONLY : gamma_only
   USE gvect,         ONLY : ngm, g, gg, ig_l2g
   USE fft_base,  ONLY: dfftp
-  USE fft_interfaces, ONLY : fwfft, invfft
+  USE fft_interfaces, ONLY: fft_rho_kind, fft_wave_kind, fwfft, invfft
   USE klist ,        ONLY : nks, xk, wk, ngk, igk_k
   USE lsda_mod,      ONLY : nspin
   USE io_files,      ONLY : nwordwfc, iunwfc
@@ -785,7 +785,7 @@ SUBROUTINE compute_gw( omegamin, omegamax, d_omega, use_gmaps, qplda, vkb, vxcdi
               psic(dfftp%nl(igk_k(ig,ik)))  = evc(ig,iband1)
            ENDDO
 
-           CALL invfft ('Rho', psic, dfftp)
+           CALL invfft (fft_rho_kind, psic, dfftp)
            vxcdiag = 0.0d0
            !norma = 0.0d0
            DO ir = 1, dfftp%nnr

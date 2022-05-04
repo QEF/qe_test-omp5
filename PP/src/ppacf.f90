@@ -47,7 +47,7 @@ PROGRAM do_ppacf
                                    exxdiv_treatment
   USE exx_base,             ONLY : nq1, nq2, nq3
   USE fft_base,             ONLY : dfftp
-  USE fft_interfaces,       ONLY : invfft
+  USE fft_interfaces,       ONLY : invfft, fft_rho_kind, fft_wave_kind
   USE lsda_mod,             ONLY : nspin
   USE scf,                  ONLY : scf_type, create_scf_type, destroy_scf_type
   USE scf,                  ONLY : scf_type_COPY
@@ -730,9 +730,9 @@ PROGRAM do_ppacf
      um_vdW(:,:) = thetasm(:,:)
      !
      DO iq = 1, Nqs
-        CALL invfft( 'Rho', thetas(:,iq),  dfftp )
-        CALL invfft( 'Rho', thetasp(:,iq), dfftp )
-        CALL invfft( 'Rho', thetasm(:,iq), dfftp )
+        CALL invfft( fft_rho_kind, thetas(:,iq),  dfftp )
+        CALL invfft( fft_rho_kind, thetasp(:,iq), dfftp )
+        CALL invfft( fft_rho_kind, thetasm(:,iq), dfftp )
      ENDDO
      !
      CALL vdW_DF_energy( u_vdW, Ec_nl )
@@ -742,9 +742,9 @@ PROGRAM do_ppacf
      CALL vdW_DF_energy( um_vdW, Ec_nl )
      !
      DO iq = 1, Nqs
-        CALL invfft( 'Rho', u_vdW(:,iq),  dfftp )
-        CALL invfft( 'Rho', up_vdW(:,iq), dfftp )
-        CALL invfft( 'Rho', um_vdW(:,iq), dfftp )
+        CALL invfft( fft_rho_kind, u_vdW(:,iq),  dfftp )
+        CALL invfft( fft_rho_kind, up_vdW(:,iq), dfftp )
+        CALL invfft( fft_rho_kind, um_vdW(:,iq), dfftp )
      ENDDO
      !
      IF (nspin == 1) THEN

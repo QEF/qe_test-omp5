@@ -103,7 +103,7 @@ SUBROUTINE plot_wannier(nc,n0)
   USE symm_base,     ONLY : nsym
   USE basis,         ONLY : swfcatom
   USE fft_base,      ONLY : dffts, dfftp
-  USE fft_interfaces,ONLY : invfft
+  USE fft_interfaces,ONLY : invfft, fft_rho_kind, fft_wave_kind
   USE gvect
   USE gvecs
   USE cell_base
@@ -151,7 +151,7 @@ SUBROUTINE plot_wannier(nc,n0)
         psic (dffts%nl (igk_k(j,ik) ) ) = wan_func (j, plot_wan_num)
      ENDDO
 
-     CALL invfft ('Wave', psic, dffts)
+     CALL invfft (fft_wave_kind, psic, dffts)
 
      DO k=1, dffts%nr3x
         DO j=1,dffts%nr2x

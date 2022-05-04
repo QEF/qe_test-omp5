@@ -53,7 +53,7 @@ PROGRAM wfck2r
   USE environment,      ONLY : environment_start, environment_end
   USE fft_base,         ONLY : dffts
   USE scatter_mod,      ONLY : gather_grid
-  USE fft_interfaces,   ONLY : invfft
+  USE fft_interfaces,   ONLY : invfft, fft_rho_kind, fft_wave_kind
   USE ener,             ONLY : efermi => ef
   USE pw_restart_new,   ONLY : read_collected_wfc
   USE constants,        ONLY : rytoev
@@ -218,13 +218,13 @@ PROGRAM wfck2r
               evc_r(dffts%nlm(igk_k(ig,ik)),1) = conjg(evc(ig,ibnd))
            enddo
         endif
-        CALL invfft ('Wave', evc_r(:,1), dffts)
+        CALL invfft (fft_wave_kind, evc_r(:,1), dffts)
 
         IF (noncolin) THEN
            DO ig = 1, npw
               evc_r (dffts%nl(igk_k(ig,ik)),2) = evc (ig+npwx, ibnd)
            ENDDO
-           CALL invfft ('Wave', evc_r(:,2), dffts)
+           CALL invfft (fft_wave_kind, evc_r(:,2), dffts)
         ENDIF
 
         dist_evc_r=(0.d0,0.d0)

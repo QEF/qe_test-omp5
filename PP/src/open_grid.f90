@@ -30,7 +30,7 @@ PROGRAM open_grid
   USE lsda_mod,           ONLY : nspin, isk, lsda, starting_magnetization
   USE io_rho_xml,         ONLY : write_scf
   USE noncollin_module,   ONLY : nspin_mag, npol
-  USE fft_interfaces,     ONLY : fwfft
+  USE fft_interfaces,     ONLY : fwfft, fft_rho_kind, fft_wave_kind
   !
   USE fft_base,           ONLY : dffts
   USE control_flags,      ONLY : gamma_only, io_level
@@ -184,12 +184,12 @@ PROGRAM open_grid
     evx(:,:) = 0._dp
     DO ibnd = 1, nbnd
       psic(1:dffts%nnr) = exxbuff(1:dffts%nnr,ibnd,ik_idx_exx)
-      CALL fwfft('Wave', psic, dffts)
+      CALL fwfft(fft_wave_kind, psic, dffts)
       evx(1:ngk(ik_idx_kpt),ibnd) = psic(dffts%nl(igk_k(1:ngk(ik_idx_kpt),ik_idx_kpt)))
       !
       IF(noncolin)THEN
         psic(1:dffts%nnr) = exxbuff(dffts%nnr+1:2*dffts%nnr,ibnd,ik_idx_exx)
-        CALL fwfft('Wave', psic, dffts)
+        CALL fwfft(fft_wave_kind, psic, dffts)
         evx(npwx+1:npwx+ngk(ik_idx_kpt),ibnd) = &
                                   psic(dffts%nl(igk_k(1:ngk(ik_idx_kpt),ik_idx_kpt)))
       ENDIF

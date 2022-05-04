@@ -1306,7 +1306,7 @@ SUBROUTINE compute_dmn
    USE control_flags,   ONLY : gamma_only
    USE wavefunctions, ONLY : evc, psic, psic_nc
    USE fft_base,        ONLY : dffts, dfftp
-   USE fft_interfaces,  ONLY : fwfft, invfft
+   USE fft_interfaces,  ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
    USE klist,           ONLY : nkstot, xk, igk_k, ngk
    USE io_files,        ONLY : nwordwfc, iunwfc
    USE gvect,           ONLY : g, ngm, gstart
@@ -1824,13 +1824,13 @@ SUBROUTINE compute_dmn
          phase(:) = (0.d0,0.d0)
          ! missing phase G of above is given here and below.
          IF(iks2g(ik,isym) >= 0) phase(dffts%nl(iks2g(ik,isym)))=(1d0,0d0)
-         CALL invfft ('Wave', phase, dffts)
+         CALL invfft (fft_wave_kind, phase, dffts)
          do n=1,nbnd
             if(excluded_band(n)) cycle
             psic(:) = (0.d0, 0.d0)
             psic(dffts%nl(igk_k(1:npwq,ikp))) = evcq(1:npwq,n)
             ! go to real space
-            CALL invfft ('Wave', psic, dffts)
+            CALL invfft (fft_wave_kind, psic, dffts)
 #if defined(__MPI)
             ! gather among all the CPUs
             CALL gather_grid(dffts, psic, temppsic_all)
@@ -1845,7 +1845,7 @@ SUBROUTINE compute_dmn
             ! apply phase k -> k+G
             psic(1:dffts%nnr) = psic(1:dffts%nnr) * phase(1:dffts%nnr)
             ! go back to G space
-            CALL fwfft ('Wave', psic, dffts)
+            CALL fwfft (fft_wave_kind, psic, dffts)
             evcq(1:npw,n)  = psic(dffts%nl (igk_k(1:npw,ik) ) )
          end do
          !
@@ -1988,7 +1988,7 @@ SUBROUTINE compute_mmn
    USE control_flags,   ONLY : gamma_only
    USE wavefunctions, ONLY : evc, psic, psic_nc
    USE fft_base,        ONLY : dffts, dfftp
-   USE fft_interfaces,  ONLY : fwfft, invfft
+   USE fft_interfaces,  ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
    USE klist,           ONLY : nkstot, xk, igk_k, ngk
    USE io_files,        ONLY : nwordwfc, iunwfc
    USE gvect,           ONLY : g, ngm, gstart
@@ -2153,7 +2153,7 @@ SUBROUTINE compute_mmn
          IF (.not.zerophase(ik,ib)) THEN
             phase(:) = (0.d0,0.d0)
             IF ( ig_(ik,ib)>0) phase( dffts%nl(ig_(ik,ib)) ) = (1.d0,0.d0)
-            CALL invfft ('Wave', phase, dffts)
+            CALL invfft (fft_wave_kind, phase, dffts)
          ENDIF
          !
          !  USPP
@@ -2196,10 +2196,10 @@ SUBROUTINE compute_mmn
                   iend=istart+npw-1
                   psic_nc(dffts%nl (igk_k(1:npw,ik) ),ipol ) = evc(istart:iend, m)
 		            IF (.not.zerophase(ik,ib)) THEN
-                     CALL invfft ('Wave', psic_nc(:,ipol), dffts)
+                     CALL invfft (fft_wave_kind, psic_nc(:,ipol), dffts)
                      psic_nc(1:dffts%nnr,ipol) = psic_nc(1:dffts%nnr,ipol) * &
                                                  phase(1:dffts%nnr)
-                     CALL fwfft ('Wave', psic_nc(:,ipol), dffts)
+                     CALL fwfft (fft_wave_kind, psic_nc(:,ipol), dffts)
                   ENDIF
                   aux_nc(1:npwq,ipol) = psic_nc(dffts%nl (igk_k(1:npwq,ikp)),ipol )
                ENDDO
@@ -2208,9 +2208,9 @@ SUBROUTINE compute_mmn
                psic(dffts%nl (igk_k (1:npw,ik) ) ) = evc (1:npw, m)
                IF(gamma_only) psic(dffts%nlm(igk_k(1:npw,ik) ) ) = conjg(evc (1:npw, m))
                IF (.not.zerophase(ik,ib)) THEN
-                  CALL invfft ('Wave', psic, dffts)
+                  CALL invfft (fft_wave_kind, psic, dffts)
                   psic(1:dffts%nnr) = psic(1:dffts%nnr) * phase(1:dffts%nnr)
-                  CALL fwfft ('Wave', psic, dffts)
+                  CALL fwfft (fft_wave_kind, psic, dffts)
                ENDIF
                aux(1:npwq)  = psic(dffts%nl (igk_k(1:npwq,ikp) ) )
             ENDIF
@@ -2385,7 +2385,7 @@ SUBROUTINE compute_spin
    USE control_flags,   ONLY : gamma_only
    USE wavefunctions, ONLY : evc, psic, psic_nc
    USE fft_base,        ONLY : dffts, dfftp
-   USE fft_interfaces,  ONLY : fwfft, invfft
+   USE fft_interfaces,  ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
    USE klist,           ONLY : nkstot, xk, ngk, igk_k
    USE io_files,        ONLY : nwordwfc, iunwfc
    USE gvect,           ONLY : g, ngm, gstart
@@ -2627,7 +2627,7 @@ SUBROUTINE compute_orb
    USE control_flags,   ONLY : gamma_only
    USE wavefunctions, ONLY : evc, psic, psic_nc
    USE fft_base,        ONLY : dffts, dfftp
-   USE fft_interfaces,  ONLY : fwfft, invfft
+   USE fft_interfaces,  ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
    USE klist,           ONLY : nkstot, xk, ngk, igk_k
    USE io_files,        ONLY : nwordwfc, iunwfc
    USE gvect,           ONLY : g, ngm, gstart
@@ -2814,7 +2814,7 @@ SUBROUTINE compute_orb
            IF (.not.zerophase(ik,i_b2)) THEN
               phase(:) = ( 0.0D0, 0.0D0 )
               if (ig_(ik,i_b2)>0) phase( dffts%nl(ig_(ik,i_b2)) ) = ( 1.0D0, 0.0D0 )
-              call invfft('Wave', phase, dffts)
+              call invfft(fft_wave_kind, phase, dffts)
            ENDIF
            !
            ! loop on bands
@@ -2834,9 +2834,9 @@ SUBROUTINE compute_orb
                     IF (.not.zerophase(ik,i_b2)) THEN
                     ! ivo igk_b1, npw_b1 --> igk_b2, npw_b2
                     ! multiply by phase in real space - '1' unless neighbor is in a bordering BZ
-                       call invfft ('Wave', psic_nc(:,ipol), dffts)
+                       call invfft (fft_wave_kind, psic_nc(:,ipol), dffts)
                        psic_nc(1:dffts%nnr,ipol) = psic_nc(1:dffts%nnr,ipol) * conjg(phase(1:dffts%nnr))
-                       call fwfft ('Wave', psic_nc(:,ipol), dffts)
+                       call fwfft (fft_wave_kind, psic_nc(:,ipol), dffts)
                     ENDIF
                     ! save the result
                     iend=istart+npw-1
@@ -2847,9 +2847,9 @@ SUBROUTINE compute_orb
                  ! Graham, changed npw --> npw_b2 on RHS. Do you agree?!
                  psic(dffts%nl (igk_k(1:npw_b2,ikp_b2) ) ) = evc_b2(1:npw_b2, n)
                  IF (.not.zerophase(ik,i_b2)) THEN
-                    call invfft ('Wave', psic, dffts)
+                    call invfft (fft_wave_kind, psic, dffts)
                     psic(1:dffts%nnr) = psic(1:dffts%nnr) * conjg(phase(1:dffts%nnr))
-                    call fwfft ('Wave', psic, dffts)
+                    call fwfft (fft_wave_kind, psic, dffts)
                  ENDIF
                  evc_aux(1:npw,n) = psic(dffts%nl (igk_k(1:npw,ik) ) )
               end if
@@ -2883,7 +2883,7 @@ SUBROUTINE compute_orb
                  phase(:) = ( 0.0D0, 0.0D0 )
                  if (ig_(ik,i_b1)>0) phase( dffts%nl(ig_(ik,i_b1)) ) = ( 1.0D0, 0.0D0 )
                  !call cft3s (phase, nr1s, nr2s, nr3s, nrx1s, nrx2s, nrx3s, +2)
-                 call invfft('Wave', phase, dffts)
+                 call invfft(fft_wave_kind, phase, dffts)
               ENDIF
               !
               ! loop on bands
@@ -2901,10 +2901,10 @@ SUBROUTINE compute_orb
                        psic_nc(dffts%nl (igk_k(1:npw_b1,ikp_b1) ),ipol ) = evc_b1(istart:iend, m) !ivo igk_b2,npw_b2 --> igk_b1,npw_b1
                        IF (.not.zerophase(ik,i_b1)) THEN
                           ! multiply by phase in real space - '1' unless neighbor is in a different BZ
-                          call invfft ('Wave', psic_nc(:,ipol), dffts)
+                          call invfft (fft_wave_kind, psic_nc(:,ipol), dffts)
                           !psic_nc(1:nrxxs,ipol) = psic_nc(1:nrxxs,ipol) * conjg(phase(1:nrxxs))
                           psic_nc(1:dffts%nnr,ipol) = psic_nc(1:dffts%nnr,ipol) * conjg(phase(1:dffts%nnr))
-                          call fwfft ('Wave', psic_nc(:,ipol), dffts)
+                          call fwfft (fft_wave_kind, psic_nc(:,ipol), dffts)
                        ENDIF
                        ! save the result
                        aux_nc(1:npw,ipol) = psic_nc(dffts%nl (igk_k(1:npw,ik) ),ipol )
@@ -2916,10 +2916,10 @@ SUBROUTINE compute_orb
 !                    psic(dffts%nl (igk_b1(1:npw_b1) ) ) = evc_b1(1:npw_b1, m) !ivo igk_b2 --> igk_b1
                     psic(dffts%nl (igk_k(1:npw_b1,ikp_b1) ) ) = evc_b1(1:npw_b1, m) !ivo igk_b2 --> igk_b1
                     IF (.not.zerophase(ik,i_b1)) THEN
-                       call invfft ('Wave', psic, dffts)
+                       call invfft (fft_wave_kind, psic, dffts)
                        !psic(1:nrxxs) = psic(1:nrxxs) * conjg(phase(1:nrxxs))
                        psic(1:dffts%nnr) = psic(1:dffts%nnr) * conjg(phase(1:dffts%nnr))
-                       call fwfft ('Wave', psic, dffts)
+                       call fwfft (fft_wave_kind, psic, dffts)
                     ENDIF
                     aux(1:npw) = psic(dffts%nl (igk_k(1:npw,ik) ) )
                  end if
@@ -3071,7 +3071,7 @@ SUBROUTINE compute_shc
    USE io_files,        ONLY : nwordwfc, iunwfc
    USE constants,       ONLY : rytoev
    USE fft_base,        ONLY : dffts, dfftp
-   USE fft_interfaces,  ONLY : fwfft, invfft
+   USE fft_interfaces,  ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
    USE control_flags,   ONLY : gamma_only
    USE wvfct,           ONLY : nbnd, npwx, current_k
    USE wavefunctions,   ONLY : evc, psic_nc
@@ -3210,7 +3210,7 @@ SUBROUTINE compute_shc
          IF (.NOT. zerophase(ik, i_b2)) THEN
             phase(:) = ( 0.0D0, 0.0D0 )
             IF (ig_(ik,i_b2)>0) phase( dffts%nl(ig_(ik,i_b2)) ) = ( 1.0D0, 0.0D0 )
-            CALL invfft('Wave', phase, dffts)
+            CALL invfft(fft_wave_kind, phase, dffts)
          ENDIF
          !
          ! loop on bands
@@ -3226,9 +3226,9 @@ SUBROUTINE compute_shc
                ! multiply by phase in real space if phase is not 1.
                ! Phase is '1' unless neighbor is in a bordering BZ
                IF (.NOT. zerophase(ik, i_b2)) THEN
-                  CALL invfft('Wave', psic_nc(:,ipol), dffts)
+                  CALL invfft(fft_wave_kind, psic_nc(:,ipol), dffts)
                   psic_nc(1:dffts%nnr,ipol) = psic_nc(1:dffts%nnr,ipol) * CONJG(phase(1:dffts%nnr))
-                  CALL fwfft('Wave', psic_nc(:,ipol), dffts)
+                  CALL fwfft(fft_wave_kind, psic_nc(:,ipol), dffts)
                ENDIF
                !
                ! save the result
@@ -3636,7 +3636,7 @@ SUBROUTINE compute_amn_with_scdm
    USE gvect,           ONLY : g, ngm, mill
    USE fft_base,        ONLY : dffts !vv: unk for the SCDM-k algorithm
    USE scatter_mod,     ONLY : gather_grid
-   USE fft_interfaces,  ONLY : invfft !vv: inverse fft transform for computing the unk's on a grid
+   USE fft_interfaces,  ONLY : invfft,fft_rho_kind, fft_wave_kind  !vv: inverse fft transform for computing the unk's on a grid
    USE noncollin_module,ONLY : noncolin, npol
    USE mp,              ONLY : mp_bcast, mp_barrier, mp_sum
    USE mp_world,        ONLY : world_comm
@@ -3786,7 +3786,7 @@ SUBROUTINE compute_amn_with_scdm
       ! vv: Compute unk's on a real grid (the fft grid)
       psic(:) = (0.D0,0.D0)
       psic(dffts%nl (igk_k (1:npw,ik) ) ) = evc (1:npw,ibnd)
-      CALL invfft ('Wave', psic, dffts)
+      CALL invfft (fft_wave_kind, psic, dffts)
 #if defined(__MPI)
       CALL gather_grid(dffts,psic,psic_all)
       ! vv: Gamma only
@@ -3993,7 +3993,7 @@ SUBROUTINE compute_amn_with_scdm_spinor
    USE gvect,           ONLY : g, ngm, mill
    USE fft_base,        ONLY : dffts !vv: unk for the SCDM-k algorithm
    USE scatter_mod,     ONLY : gather_grid
-   USE fft_interfaces,  ONLY : invfft !vv: inverse fft transform for computing the unk's on a grid
+   USE fft_interfaces,  ONLY : invfft, fft_rho_kind, fft_wave_kind !vv: inverse fft transform for computing the unk's on a grid
    USE noncollin_module,ONLY : noncolin, npol
    USE mp,              ONLY : mp_bcast, mp_barrier, mp_sum
    USE mp_world,        ONLY : world_comm
@@ -4147,8 +4147,8 @@ SUBROUTINE compute_amn_with_scdm_spinor
       psic_nc(:,:) = (0.D0,0.D0)
       psic_nc(dffts%nl (igk_k (1:npw,ik) ), 1) = evc (1:npw,ibnd)
       psic_nc(dffts%nl (igk_k (1:npw,ik) ), 2) = evc (1+npwx:npw+npwx,ibnd)
-      CALL invfft ('Wave', psic_nc(:,1), dffts)
-      CALL invfft ('Wave', psic_nc(:,2), dffts)
+      CALL invfft (fft_wave_kind, psic_nc(:,1), dffts)
+      CALL invfft (fft_wave_kind, psic_nc(:,2), dffts)
 
 #if defined(__MPI)
       CALL gather_grid(dffts, psic_nc(:,1), psic_all(:,1))
@@ -4555,7 +4555,7 @@ SUBROUTINE write_plot
    USE gvect,           ONLY : g, ngm
    USE fft_base,        ONLY : dffts
    USE scatter_mod,     ONLY : gather_grid
-   USE fft_interfaces,  ONLY : invfft
+   USE fft_interfaces,  ONLY : invfft, fft_rho_kind, fft_wave_kind
    USE noncollin_module,ONLY : noncolin, npol
 
    IMPLICIT NONE
@@ -4651,12 +4651,12 @@ SUBROUTINE write_plot
             psic(:) = (0.d0, 0.d0)
             psic(dffts%nl (igk_k (1:npw,ik) ) ) = evc (1:npw, ibnd)
             IF (gamma_only)  psic(dffts%nlm(igk_k(1:npw,ik))) = conjg(evc (1:npw, ibnd))
-            CALL invfft ('Wave', psic, dffts)
+            CALL invfft (fft_wave_kind, psic, dffts)
          ELSE
             psic_nc(:,:) = (0.d0, 0.d0)
             DO ipol = 1, npol
                psic_nc(dffts%nl (igk_k (1:npw,ik) ), ipol) = evc (1+npwx*(ipol-1):npw+npwx*(ipol-1), ibnd)
-               CALL invfft ('Wave', psic_nc(:,ipol), dffts)
+               CALL invfft (fft_wave_kind, psic_nc(:,ipol), dffts)
             ENDDO
          ENDIF
          IF (reduce_unk) pos=0
