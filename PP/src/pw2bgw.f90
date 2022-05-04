@@ -1754,7 +1754,7 @@ SUBROUTINE calc_rhog (rhog_nvmin, rhog_nvmax)
 
   USE cell_base, ONLY : omega, tpiba2
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft, invfft
+  USE fft_interfaces, ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
   USE gvect, ONLY : ngm, g
   USE io_files, ONLY : nwordwfc, iunwfc
   USE klist, ONLY : xk, nkstot, ngk, nks, igk_k
@@ -1803,10 +1803,10 @@ SUBROUTINE calc_rhog (rhog_nvmin, rhog_nvmax)
       ! ZL: add for spinors
       IF (nspin == 4) THEN
         DO isp=1,nst
-          CALL invfft ('Rho', psic_nc(:,isp), dfftp)
+          CALL invfft (fft_rho_kind, psic_nc(:,isp), dfftp)
         ENDDO
       ELSE
-        CALL invfft ('Rho', psic, dfftp)
+        CALL invfft (fft_rho_kind, psic, dfftp)
       ENDIF
       DO ir = 1, dfftp%nnr
         ! ZL: add for spinors
@@ -1834,7 +1834,7 @@ SUBROUTINE calc_rhog (rhog_nvmin, rhog_nvmax)
   DO is = 1, nspin
     psic (:) = (0.0D0, 0.0D0)
     psic (:) = rho%of_r (:, is)
-    CALL fwfft ('Rho', psic, dfftp)
+    CALL fwfft (fft_rho_kind, psic, dfftp)
     rho%of_g (:, is) = psic (dfftp%nl (:))
   ENDDO
 
@@ -1855,7 +1855,7 @@ SUBROUTINE write_vxcg ( output_file_name, real_or_complex, symm_type, &
   USE constants, ONLY : pi, tpi, eps6
   USE ener, ONLY : etxc, vtxc
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft
+  USE fft_interfaces, ONLY : fwfft, fft_rho_kind, fft_wave_kind
   USE gvect, ONLY : ngm, ngm_g, ig_l2g, mill, ecutrho
   USE io_global, ONLY : ionode
   USE ions_base, ONLY : nat, atm, ityp, tau 
@@ -2022,7 +2022,7 @@ SUBROUTINE write_vxcg ( output_file_name, real_or_complex, symm_type, &
     DO ir = 1, nr
       psic ( ir ) = CMPLX ( vxcr_g ( ir, is ), 0.0D0, KIND=dp )
     ENDDO
-    CALL fwfft ( 'Rho', psic, dfftp )
+    CALL fwfft ( fft_rho_kind, psic, dfftp )
     DO ig = 1, ng_l
       vxcg_g ( ig_l2g ( ig ), is ) = psic ( dfftp%nl ( ig ) )
     ENDDO
@@ -2079,7 +2079,7 @@ SUBROUTINE write_vxcg_meta ( output_file_name, real_or_complex, symm_type, &
   USE constants, ONLY : pi, tpi, eps6
   USE ener, ONLY : etxc, vtxc
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft
+  USE fft_interfaces, ONLY : fwfft, fft_rho_kind, fft_wave_kind
   !USE funct, ONLY : exx_is_active, dft_is_meta, get_meta     !FZ: Added for metaGGA
   USE xc_lib, ONLY : exx_is_active, xclib_dft_is     !FZ: for qe6.7
   USE gvect, ONLY : ngm, ngm_g, ig_l2g, mill, ecutrho
@@ -2256,7 +2256,7 @@ SUBROUTINE write_vxcg_meta ( output_file_name, real_or_complex, symm_type, &
     DO ir = 1, nr
       psic ( ir ) = CMPLX ( vxcr_g ( ir, is ), 0.0D0, KIND=dp )
     ENDDO
-    CALL fwfft ( 'Rho', psic, dfftp )
+    CALL fwfft ( fft_rho_kind, psic, dfftp )
     DO ig = 1, ng_l
       vxcg_g ( ig_l2g ( ig ), is ) = psic ( dfftp%nl ( ig ) )
     ENDDO
@@ -2309,7 +2309,7 @@ SUBROUTINE write_vxc0 ( output_file_name, vxc_zero_rho_core )
   USE constants, ONLY : RYTOEV
   USE ener, ONLY : etxc, vtxc
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft
+  USE fft_interfaces, ONLY : fwfft, fft_rho_kind, fft_wave_kind 
   USE gvect, ONLY : ngm, mill
   USE io_global, ONLY : ionode
   USE kinds, ONLY : DP
@@ -2358,7 +2358,7 @@ SUBROUTINE write_vxc0 ( output_file_name, vxc_zero_rho_core )
     DO ir = 1, nr
       psic ( ir ) = CMPLX ( vxcr_g ( ir, is ), 0.0D0, KIND=dp )
     ENDDO
-    CALL fwfft ( 'Rho', psic, dfftp )
+    CALL fwfft ( fft_rho_kind, psic, dfftp )
     DO ig = 1, ng_l
       IF ( mill ( 1, ig ) .EQ. 0 .AND. mill ( 2, ig ) .EQ. 0 .AND. &
         mill ( 3, ig ) .EQ. 0 ) vxc0_g ( is ) = psic ( dfftp%nl ( ig ) )
@@ -2403,7 +2403,7 @@ SUBROUTINE write_vxc0_meta ( output_file_name, vxc_zero_rho_core )
   USE constants, ONLY : RYTOEV
   USE ener, ONLY : etxc, vtxc
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft
+  USE fft_interfaces, ONLY : fwfft, fft_rho_kind, fft_wave_kind 
   USE gvect, ONLY : ngm, mill
   USE io_global, ONLY : ionode
   USE kinds, ONLY : DP
@@ -2460,7 +2460,7 @@ SUBROUTINE write_vxc0_meta ( output_file_name, vxc_zero_rho_core )
     DO ir = 1, nr
       psic ( ir ) = CMPLX ( vxcr_g ( ir, is ), 0.0D0, KIND=dp )
     ENDDO
-    CALL fwfft ( 'Rho', psic, dfftp )
+    CALL fwfft ( fft_rho_kind, psic, dfftp )
     DO ig = 1, ng_l
       IF ( mill ( 1, ig ) .EQ. 0 .AND. mill ( 2, ig ) .EQ. 0 .AND. &
         mill ( 3, ig ) .EQ. 0 ) vxc0_g ( is ) = psic ( dfftp%nl ( ig ) )
@@ -2508,7 +2508,7 @@ SUBROUTINE write_vxc_r (output_file_name, diag_nmin, diag_nmax, &
   USE cell_base, ONLY : tpiba2, at, bg
   USE ener, ONLY : etxc, vtxc
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : invfft
+  USE fft_interfaces, ONLY : invfft, fft_rho_kind, fft_wave_kind
   USE gvect, ONLY : ngm, g
   USE io_files, ONLY : nwordwfc, iunwfc
   USE io_global, ONLY : ionode
@@ -2614,10 +2614,10 @@ SUBROUTINE write_vxc_r (output_file_name, diag_nmin, diag_nmax, &
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL invfft ('Rho', psic_nc(:,isp),dfftp)  !FZ: added for spinors
+            CALL invfft (fft_rho_kind, psic_nc(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL invfft ('Rho', psic, dfftp)
+          CALL invfft (fft_rho_kind, psic, dfftp)
         ENDIF  !FZ: added for spinors
         dummyr = 0.0D0
         DO ir = 1, dfftp%nnr
@@ -2651,10 +2651,10 @@ SUBROUTINE write_vxc_r (output_file_name, diag_nmin, diag_nmax, &
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL invfft ('Rho', psic_nc(:,isp),dfftp)  !FZ: added for spinors
+            CALL invfft (fft_rho_kind, psic_nc(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL invfft ('Rho', psic, dfftp)
+          CALL invfft (fft_rho_kind, psic, dfftp)
         ENDIF  !FZ: added for spinors
         DO ib2 = offdiag_nmin, offdiag_nmax
           psic2 (:) = (0.0D0, 0.0D0)
@@ -2670,10 +2670,10 @@ SUBROUTINE write_vxc_r (output_file_name, diag_nmin, diag_nmax, &
           ENDDO
           IF (nspin == 4) THEN !FZ: added for spinors
             DO isp=1, nst  !FZ: added for spinors
-              CALL invfft ('Rho', psic_nc2(:,isp),dfftp)  !FZ: added for spinors
+              CALL invfft (fft_rho_kind, psic_nc2(:,isp),dfftp)  !FZ: added for spinors
             ENDDO  !FZ: added for spinors
           ELSE  !FZ: added for spinors
-            CALL invfft ('Rho', psic2, dfftp)
+            CALL invfft (fft_rho_kind, psic2, dfftp)
           ENDIF  !FZ: added for spinors
           dummyc = (0.0D0, 0.0D0)
           DO ir = 1, dfftp%nnr
@@ -2781,7 +2781,7 @@ SUBROUTINE write_vxc_r_meta (output_file_name, diag_nmin, diag_nmax, &
   USE cell_base, ONLY : tpiba2, at, bg
   USE ener, ONLY : etxc, vtxc
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : invfft
+  USE fft_interfaces, ONLY : invfft, fft_rho_kind, fft_wave_kind
   USE gvect, ONLY : ngm, g
   USE io_files, ONLY : nwordwfc, iunwfc
   USE io_global,        ONLY : ionode   !FZ:
@@ -2878,7 +2878,7 @@ SUBROUTINE write_vxc_r_meta (output_file_name, diag_nmin, diag_nmax, &
         DO ig = 1, npw
           psic (dfftp%nl (igk_k (ig,ik-iks+1))) = evc (ig, ib)
         ENDDO
-        CALL invfft ('Rho', psic, dfftp)
+        CALL invfft (fft_rho_kind, psic, dfftp)
         dummyr = 0.0D0
         DO ir = 1, dfftp%nnr
           dummyr = dummyr + vxcr (ir, isk (ik)) &
@@ -2895,13 +2895,13 @@ SUBROUTINE write_vxc_r_meta (output_file_name, diag_nmin, diag_nmax, &
         DO ig = 1, npw
           psic (dfftp%nl (igk_k (ig,ik-iks+1))) = evc (ig, ib)
         ENDDO
-        CALL invfft ('Rho', psic, dfftp)
+        CALL invfft (fft_rho_kind, psic, dfftp)
         DO ib2 = offdiag_nmin, offdiag_nmax
           psic2 (:) = (0.0D0, 0.0D0)
           DO ig = 1, npw
             psic2 (dfftp%nl (igk_k (ig,ik-iks+1))) = evc (ig, ib2)
           ENDDO
-          CALL invfft ('Rho', psic2, dfftp)
+          CALL invfft (fft_rho_kind, psic2, dfftp)
           dummyc = (0.0D0, 0.0D0)
           DO ir = 1, dfftp%nnr
             dummyc = dummyc + CMPLX (vxcr (ir, isk (ik)), 0.0D0, KIND=dp) &
@@ -2980,7 +2980,7 @@ SUBROUTINE write_vxc_g (output_file_name, diag_nmin, diag_nmax, &
   USE ener, ONLY : etxc, vtxc
   USE exx, ONLY : vexx
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft, invfft
+  USE fft_interfaces, ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
   USE xc_lib, ONLY: exx_is_active
   USE gvect, ONLY : ngm, g
   USE io_files, ONLY : nwordwfc, iunwfc
@@ -3092,10 +3092,10 @@ SUBROUTINE write_vxc_g (output_file_name, diag_nmin, diag_nmax, &
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL invfft ('Rho', psic_nc(:,isp),dfftp)  !FZ: added for spinors
+            CALL invfft (fft_rho_kind, psic_nc(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL invfft ('Rho', psic, dfftp)
+          CALL invfft (fft_rho_kind, psic, dfftp)
         ENDIF  !FZ: added for spinors
         DO ir = 1, dfftp%nnr
           IF (nspin == 4) THEN !FZ: added for spinors
@@ -3108,10 +3108,10 @@ SUBROUTINE write_vxc_g (output_file_name, diag_nmin, diag_nmax, &
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL fwfft ('Rho', psic_nc(:,isp),dfftp)  !FZ: added for spinors
+            CALL fwfft (fft_rho_kind, psic_nc(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL fwfft ('Rho', psic, dfftp)
+          CALL fwfft (fft_rho_kind, psic, dfftp)
         ENDIF  !FZ: added for spinors
         hpsi (:) = (0.0D0, 0.0D0)
         hpsi_nc (:,:) = (0.0D0, 0.0D0)! FZ: added for spinors
@@ -3167,10 +3167,10 @@ SUBROUTINE write_vxc_g (output_file_name, diag_nmin, diag_nmax, &
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL invfft ('Rho', psic_nc(:,isp),dfftp)  !FZ: added for spinors
+            CALL invfft (fft_rho_kind, psic_nc(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL invfft ('Rho', psic, dfftp)
+          CALL invfft (fft_rho_kind, psic, dfftp)
         ENDIF !FZ: added for spinors
         DO ir = 1, dfftp%nnr
           IF (nspin == 4) THEN !FZ: added for spinors
@@ -3183,10 +3183,10 @@ SUBROUTINE write_vxc_g (output_file_name, diag_nmin, diag_nmax, &
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL fwfft ('Rho', psic_nc(:,isp),dfftp)  !FZ: added for spinors
+            CALL fwfft (fft_rho_kind, psic_nc(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL fwfft ('Rho', psic, dfftp)
+          CALL fwfft (fft_rho_kind, psic, dfftp)
         ENDIF  !FZ: added for spinors
         hpsi (:) = (0.0D0, 0.0D0)
         hpsi_nc (:,:) = (0.0D0, 0.0D0)! FZ: added for spinors
@@ -3328,7 +3328,7 @@ SUBROUTINE write_vxc_g_meta (output_file_name, diag_nmin, diag_nmax, &
   USE ener, ONLY : etxc, vtxc
   USE exx, ONLY : vexx    !FZ 
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft, invfft
+  USE fft_interfaces, ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
   !USE funct, ONLY : exx_is_active, dft_is_meta, get_meta, dft_is_hybrid     !FZ: Added for metaGGA, Added dft_is_hybrid for hybrid functional
   USE xc_lib, ONLY : exx_is_active, xclib_dft_is   !FZ: for qe6.7
   USE gvect, ONLY : ngm, g
@@ -3433,11 +3433,11 @@ SUBROUTINE write_vxc_g_meta (output_file_name, diag_nmin, diag_nmax, &
         DO ig = 1, npw
           psic (dfftp%nl (igk_k(ig,ikk))) = evc (ig, ib)     
         ENDDO
-        CALL invfft ('Rho', psic, dfftp)
+        CALL invfft (fft_rho_kind, psic, dfftp)
         DO ir = 1, dfftp%nnr
           psic (ir) = psic (ir) * vxcr (ir, isk (ik))
         ENDDO
-        CALL fwfft ('Rho', psic, dfftp)
+        CALL fwfft (fft_rho_kind, psic, dfftp)
         hpsi (:) = (0.0D0, 0.0D0)
         DO ig = 1, npw
           hpsi (ig) = psic (dfftp%nl (igk_k(ig,ikk)))
@@ -3463,11 +3463,11 @@ SUBROUTINE write_vxc_g_meta (output_file_name, diag_nmin, diag_nmax, &
         DO ig = 1, npw
           psic (dfftp%nl (igk_k(ig,ikk))) = evc (ig, ib)
         ENDDO
-        CALL invfft ('Rho', psic, dfftp)
+        CALL invfft (fft_rho_kind, psic, dfftp)
         DO ir = 1, dfftp%nnr
           psic (ir) = psic (ir) * vxcr (ir, isk (ik))
         ENDDO
-        CALL fwfft ('Rho', psic, dfftp)
+        CALL fwfft (fft_rho_kind, psic, dfftp)
         hpsi (:) = (0.0D0, 0.0D0)
         DO ig = 1, npw
           hpsi (ig) = psic (dfftp%nl (igk_k (ig,ikk)))
@@ -3559,7 +3559,7 @@ SUBROUTINE write_kih (kih_file_name, vxc_hybrid_file_name, diag_nmin, diag_nmax,
   USE ener, ONLY : etxc, vtxc, ehart !FZ:  added ehart
   USE exx, ONLY : vexx
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft, invfft
+  USE fft_interfaces, ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
   !USE funct, ONLY : exx_is_active, dft_is_meta, get_meta     !FZ: Added for metaGGA commented in v_h
   USE xc_lib, ONLY : exx_is_active, xclib_dft_is     !FZ: for qe6.7
   USE gvect, ONLY : ngm, g
@@ -3768,10 +3768,10 @@ SUBROUTINE write_kih (kih_file_name, vxc_hybrid_file_name, diag_nmin, diag_nmax,
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL invfft ('Rho', psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
+            CALL invfft (fft_rho_kind, psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL invfft ('Rho', psic_temp, dfftp)
+          CALL invfft (fft_rho_kind, psic_temp, dfftp)
         ENDIF  !FZ: added for spinors
         DO ir = 1, dfftp%nnr
           IF (nspin == 4) THEN !FZ: added for spinors
@@ -3787,10 +3787,10 @@ SUBROUTINE write_kih (kih_file_name, vxc_hybrid_file_name, diag_nmin, diag_nmax,
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL fwfft ('Rho', psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
+            CALL fwfft (fft_rho_kind, psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL fwfft ('Rho', psic_temp, dfftp)
+          CALL fwfft (fft_rho_kind, psic_temp, dfftp)
         ENDIF  !FZ: added for spinors
         DO ig = 1, npw
           IF (nspin == 4) THEN !FZ: added for spinors
@@ -3867,10 +3867,10 @@ SUBROUTINE write_kih (kih_file_name, vxc_hybrid_file_name, diag_nmin, diag_nmax,
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL invfft ('Rho', psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
+            CALL invfft (fft_rho_kind, psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL invfft ('Rho', psic_temp, dfftp)
+          CALL invfft (fft_rho_kind, psic_temp, dfftp)
         ENDIF  !FZ: added for spinors
         DO ir = 1, dfftp%nnr
           IF (nspin == 4) THEN !FZ: added for spinors
@@ -3886,10 +3886,10 @@ SUBROUTINE write_kih (kih_file_name, vxc_hybrid_file_name, diag_nmin, diag_nmax,
         ENDDO
         IF (nspin == 4) THEN !FZ: added for spinors
           DO isp=1, nst  !FZ: added for spinors
-            CALL fwfft ('Rho', psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
+            CALL fwfft (fft_rho_kind, psic_nc_temp(:,isp),dfftp)  !FZ: added for spinors
           ENDDO  !FZ: added for spinors
         ELSE  !FZ: added for spinors
-          CALL fwfft ('Rho', psic_temp, dfftp)
+          CALL fwfft (fft_rho_kind, psic_temp, dfftp)
         ENDIF  !FZ: added for spinors
         hpsi_temp (:) = (0.0D0, 0.0D0)
         DO ig = 1, npw
@@ -4109,7 +4109,7 @@ SUBROUTINE write_vscg ( output_file_name, real_or_complex, symm_type )
   USE cell_base, ONLY : omega, alat, tpiba, tpiba2, at, bg, ibrav
   USE constants, ONLY : pi, tpi, eps6
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft
+  USE fft_interfaces, ONLY : fwfft, fft_rho_kind, fft_wave_kind
   USE gvect, ONLY : ngm, ngm_g, ig_l2g, mill, ecutrho
   USE io_global, ONLY : ionode
   USE ions_base, ONLY : nat, atm, ityp, tau 
@@ -4268,7 +4268,7 @@ SUBROUTINE write_vscg ( output_file_name, real_or_complex, symm_type )
     DO ir = 1, nr
       psic ( ir ) = CMPLX ( v%of_r ( ir, is ) + vltot ( ir ), 0.0D0, KIND=dp )
     ENDDO
-    CALL fwfft ( 'Rho', psic, dfftp )
+    CALL fwfft ( fft_rho_kind, psic, dfftp )
     DO ig = 1, ng_l
       vscg_g ( ig_l2g ( ig ), is ) = psic ( dfftp%nl ( ig ) )
     ENDDO
@@ -4712,7 +4712,7 @@ SUBROUTINE write_vhub_g (output_file_name, diag_nmin, diag_nmax, offdiag_nmin, o
   USE ener, ONLY : etxc, vtxc
   USE exx, ONLY : vexx
   USE fft_base, ONLY : dfftp
-  USE fft_interfaces, ONLY : fwfft, invfft
+  USE fft_interfaces, ONLY : fwfft, invfft, fft_rho_kind, fft_wave_kind
   !USE funct, ONLY : exx_is_active
   USE xc_lib, ONLY : exx_is_active !FZ: for qe6.7
   USE gvect, ONLY : ngm, g
