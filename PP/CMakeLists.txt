@@ -55,7 +55,7 @@ target_link_libraries(qe_pp
         qe_upflib
         qe_lax
         qe_xclib
-    PUBLIC
+     PUBLIC 
         qe_devxlib)
 
 ###########################################################

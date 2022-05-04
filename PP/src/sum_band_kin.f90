@@ -14,7 +14,7 @@ SUBROUTINE sum_band_kin(kin_r)
   USE cell_base,            ONLY : at, bg, omega, tpiba
   USE ions_base,            ONLY : nat, ntyp => nsp, ityp
   USE fft_base,             ONLY : dfftp, dffts
-  USE fft_interfaces,       ONLY : fwfft, invfft, fft_interpolate
+  USE fft_interfaces,       ONLY : fwfft, invfft, fft_interpolate, fft_rho_kind, fft_wave_kind
   USE gvect,                ONLY : ngm, g
   USE gvecs,                ONLY : doublegrid
   USE klist,                ONLY : nks, nkstot, wk, xk, ngk, igk_k
@@ -130,7 +130,7 @@ SUBROUTINE sum_band_kin(kin_r)
      DO is = 1, nspin
         psic(1:dffts%nnr) = kin_r(1:dffts%nnr,is)
         psic(dffts%nnr+1:) = 0.0_dp
-        CALL fwfft (1, psic, dffts)
+        CALL fwfft (fft_rho_kind, psic, dffts)
         kin_g(1:dffts%ngm,is) = psic(dffts%nl(1:dffts%ngm))
         kin_g(dffts%ngm+1:,is) = (0.0_dp,0.0_dp)
      END DO
@@ -141,7 +141,7 @@ SUBROUTINE sum_band_kin(kin_r)
         psic(:) = ( 0.D0, 0.D0 )
         psic(dfftp%nl(:)) = kin_g(:,is)
         IF ( gamma_only ) psic(dfftp%nlm(:)) = CONJG( kin_g(:,is) )
-        CALL invfft (1, psic, dfftp)
+        CALL invfft (fft_rho_kind, psic, dfftp)
         kin_r(:,is) = psic(:)
      END DO
      !
@@ -222,7 +222,7 @@ SUBROUTINE sum_band_kin(kin_r)
                                        CONJG( evc(1:npw,ibnd) )
                    END IF
                    !
-                   CALL invfft (2, psic, dffts)
+                   CALL invfft (fft_wave_kind, psic, dffts)
                    !
                    ! ... increment the kinetic energy density ...
                    !
@@ -315,7 +315,7 @@ SUBROUTINE sum_band_kin(kin_r)
                       psic(dffts%nl(igk_k(1:npw,ik)))=CMPLX(0d0,kplusg(1:npw),kind=DP) * &
                                               evc(1:npw,ibnd)
                       !
-                      CALL invfft (2, psic, dffts)
+                      CALL invfft (fft_wave_kind, psic, dffts)
                       !
                       ! ... increment the kinetic energy density ...
                       !
