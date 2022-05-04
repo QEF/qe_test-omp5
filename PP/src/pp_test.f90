@@ -171,7 +171,6 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
   ALLOCATE( en( nbnd ) )
   CALL allocate_bec_type (nkb, nbnd, becp )
   CALL set_vrs(vrs,vltot,v%of_r,kedtau,v%kin_r,dfftp%nnr,nspin,doublegrid)
-
   DO ik = ik_start, ik_stop 
     !
     CALL read_collected_wfc ( restart_dir() , ik, evc )
@@ -239,6 +238,7 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
     print '(/,12x,"k =",3f7.4," (",i6," PWs)  bands (eV):",/)', xk(:,ik),npw
     print '(8f9.4)', en(:)*rytoev
      !
+     if (allocated(aux_check)) deallocate (aux_check)   
   END DO
   !
 	contains 
