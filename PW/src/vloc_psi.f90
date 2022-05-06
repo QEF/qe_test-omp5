@@ -40,6 +40,7 @@ SUBROUTINE vloc_psi_gamma( lda, n, m, psi, v, hpsi )
   INTEGER :: ibnd, j, incr
   INTEGER :: right_nnr, right_nr3, right_inc
   COMPLEX(DP) :: fp, fm
+  INTEGER, ALLOCATABLE :: dffts_nl(:), dffts_nlm(:)
   !
   !Variables for task groups
   LOGICAL :: use_tg
@@ -64,6 +65,16 @@ SUBROUTINE vloc_psi_gamma( lda, n, m, psi, v, hpsi )
      CALL stop_clock ('vloc_psi:tg_gather')
      !
      incr = 2 * fftx_ntgrp(dffts)
+     !
+  ELSE
+     !
+     ALLOCATE(dffts_nl(1:dffts%ngm))
+     ALLOCATE(dffts_nlm(1:dffts%ngm))
+     !
+     dffts_nl = dffts%nl
+     dffts_nlm = dffts%nlm
+     v_siz = dffts%nnr
+     !$omp target enter data map(to: dffts_nl, dffts_nlm, v, psi, hpsi)
      !
   ENDIF
   !
@@ -99,17 +110,22 @@ SUBROUTINE vloc_psi_gamma( lda, n, m, psi, v, hpsi )
         !
      ELSE
         !
-        psic(:) = (0.d0, 0.d0)
+        !$omp target teams distribute parallel do
+        DO j = 1, v_siz
+           psic(j) = (0.d0, 0.d0)
+        END DO
         IF (ibnd < m) THEN
            ! two ffts at the same time
+           !$omp target teams distribute parallel do
            DO j = 1, n
-              psic(dffts%nl (j))=      psi(j,ibnd) + (0.0d0,1.d0)*psi(j,ibnd+1)
-              psic(dffts%nlm(j))=conjg(psi(j,ibnd) - (0.0d0,1.d0)*psi(j,ibnd+1))
+              psic(dffts_nl (j))=      psi(j,ibnd) + (0.0d0,1.d0)*psi(j,ibnd+1)
+              psic(dffts_nlm(j))=conjg(psi(j,ibnd) - (0.0d0,1.d0)*psi(j,ibnd+1))
            ENDDO
         ELSE
+           !$omp target teams distribute parallel do
            DO j = 1, n
-              psic (dffts%nl (j)) =       psi(j, ibnd)
-              psic (dffts%nlm(j)) = conjg(psi(j, ibnd))
+              psic (dffts_nl (j)) =       psi(j, ibnd)
+              psic (dffts_nlm(j)) = conjg(psi(j, ibnd))
            ENDDO
         ENDIF
         !
@@ -133,19 +149,16 @@ SUBROUTINE vloc_psi_gamma( lda, n, m, psi, v, hpsi )
         !
      ELSE
         !
-        !$omp target update to(psic)
         !$omp dispatch
         CALL invfft (FFT_WAVE_KIND, psic, dffts)
-        !$omp target update from(psic)
         !
-        DO j = 1, dffts%nnr
+        !$omp target teams distribute parallel do
+        DO j = 1, v_siz
            psic (j) = psic (j) * v(j)
         ENDDO
         !
-        !$omp target update to(psic)
         !$omp dispatch
         CALL fwfft (FFT_WAVE_KIND, psic, dffts)
-        !$omp target update from(psic)
         !
      ENDIF
      !
@@ -184,17 +197,19 @@ SUBROUTINE vloc_psi_gamma( lda, n, m, psi, v, hpsi )
      ELSE
         IF (ibnd < m) THEN
            ! two ffts at the same time
+           !$omp target teams distribute parallel do
            DO j = 1, n
-              fp = (psic (dffts%nl(j)) + psic (dffts%nlm(j)))*0.5d0
-              fm = (psic (dffts%nl(j)) - psic (dffts%nlm(j)))*0.5d0
+              fp = (psic (dffts_nl(j)) + psic (dffts_nlm(j)))*0.5d0
+              fm = (psic (dffts_nl(j)) - psic (dffts_nlm(j)))*0.5d0
               hpsi (j, ibnd)   = hpsi (j, ibnd)   + &
                                  cmplx( dble(fp), aimag(fm),kind=DP)
               hpsi (j, ibnd+1) = hpsi (j, ibnd+1) + &
                                  cmplx(aimag(fp),- dble(fm),kind=DP)
            ENDDO
         ELSE
+           !$omp target teams distribute parallel do
            DO j = 1, n
-              hpsi (j, ibnd)   = hpsi (j, ibnd)   + psic (dffts%nl(j))
+              hpsi (j, ibnd)   = hpsi (j, ibnd)   + psic (dffts_nl(j))
            ENDDO
         ENDIF
      ENDIF
@@ -205,6 +220,12 @@ SUBROUTINE vloc_psi_gamma( lda, n, m, psi, v, hpsi )
      !
      DEALLOCATE( tg_psic )
      DEALLOCATE( tg_v )
+     !
+  ELSE
+     !
+     !$omp target exit data map(delete:dffts_nl,dffts_nlm,v,psi) map(from:hpsi) 
+     DEALLOCATE( dffts_nl )
+     DEALLOCATE( dffts_nlm )
      !
   ENDIF
   CALL stop_clock ('vloc_psi')
@@ -277,7 +298,15 @@ SUBROUTINE vloc_psi_k( lda, n, m, psi, v, hpsi )
      !
      CALL tg_gather( dffts, v, tg_v )
      CALL stop_clock ('vloc_psi:tg_gather')
-
+  ELSE
+     !
+     ALLOCATE(dffts_nl(1:dffts%ngm))
+     !
+     dffts_nl = dffts%nl
+     v_siz = dffts%nnr
+     !
+     !$omp target enter data map(to:v,igk_k,dffts_nl,psi) map(to:hpsi)
+     !
   ENDIF
   !
   IF( use_tg ) THEN
@@ -333,10 +362,7 @@ SUBROUTINE vloc_psi_k( lda, n, m, psi, v, hpsi )
         !
      ENDDO
   ELSE
-     ALLOCATE(dffts_nl(1:dffts%ngm))
-     dffts_nl = dffts%nl
-     v_siz=dffts%nnr
-     !$omp target data map(to:v,igk_k,dffts_nl) map(tofrom:hpsi)
+     !
      DO ibnd = 1, m
         !
 #if defined(__OPENMP_GPU)
@@ -352,19 +378,9 @@ SUBROUTINE vloc_psi_k( lda, n, m, psi, v, hpsi )
           psic (dffts_nl (igk_k(j, current_k))) = psi(j, ibnd)
         END DO
         !
-!!$omp parallel
-!        CALL threaded_barrier_memset(psic, 0.D0, dffts%nnr*2)
-!        !$omp do
-!        DO j = 1, n
-!           psic (dffts_nl (igk_k(j,current_k))) = psi(j, ibnd)
-!        ENDDO
-!        !$omp end do nowait
-!!$omp end parallel
-
         !write (6,*) 'wfc G ', ibnd
         !write (6,99) (psic(i), i=1,400)
         !
-!!$omp target update to(psic)
         !$omp dispatch
         CALL invfft (FFT_WAVE_KIND, psic, dffts)
         !write (6,*) 'wfc R ' 
@@ -379,7 +395,6 @@ SUBROUTINE vloc_psi_k( lda, n, m, psi, v, hpsi )
         !
         !$omp dispatch
         CALL fwfft (FFT_WAVE_KIND, psic, dffts)
-!!$omp target update from(psic)
         !
         !   addition to the total product
         !
@@ -391,13 +406,19 @@ SUBROUTINE vloc_psi_k( lda, n, m, psi, v, hpsi )
         !write (6,99) (psic(i), i=1,400)
         !
      ENDDO
-     !$omp end target data
+     !
   ENDIF
   !
   IF( use_tg ) THEN
      !
      DEALLOCATE( tg_psic )
      DEALLOCATE( tg_v )
+     !
+  ELSE
+     !
+     !$omp target exit data map(delete:dffts_nl,v,igk_k,psi) map(from:hpsi)
+     !
+     DEALLOCATE( dffts_nl )
      !
   ENDIF
   CALL stop_clock ('vloc_psi')
@@ -472,8 +493,9 @@ SUBROUTINE vloc_psi_nc( lda, n, m, psi, v, hpsi )
      ENDIF
      ALLOCATE( tg_psic( v_siz, npol ) )
      CALL stop_clock ('vloc_psi:tg_gather')
-
+     !       
      incr = fftx_ntgrp(dffts)
+     !
   ENDIF
   !
   ! the local potential V_Loc psi. First the psi in real space
