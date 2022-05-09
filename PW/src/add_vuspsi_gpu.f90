@@ -86,11 +86,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
        USE cudafor
        USE cublas
 #elif defined(__OPENMP_GPU)
-#if defined(MKL_ILP64)
-       USE onemkl_blas_omp_offload_ilp64_no_array_check
-#else
-       USE onemkl_blas_omp_offload_lp64_no_array_check
-#endif
+       USE onemkl_blas_omp_offload_no_array_check
 #endif
        !
        IMPLICIT NONE
@@ -153,6 +149,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
        !   In becp=<vkb_i|psi_j> terms corresponding to atom na of type nt
        !   run from index i=ofsbeta(na)+1 to i=ofsbeta(na)+nh(nt)
        !
+       !$omp target data map (to:ofsbeta) 
        DO nt = 1, ntyp
           !
           IF ( nh(nt) == 0 ) CYCLE
@@ -181,6 +178,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
           END DO
           !
        END DO
+       !$omp end target data 
        !
        IF( becp_d%comm == mp_get_comm_null() ) THEN
           !
@@ -248,11 +246,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
        USE cudafor
        USE cublas
 #elif defined(__OPENMP_GPU)
-#if defined(MKL_ILP64)
-       USE onemkl_blas_omp_offload_ilp64_no_array_check
-#else
-       USE onemkl_blas_omp_offload_lp64_no_array_check
-#endif
+       USE onemkl_blas_omp_offload_no_array_check
 #endif
        USE devxlib_buffers, ONLY : dev_buf=>gpu_buffer
        use omp_lib
@@ -281,6 +275,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
        IF( ierr /= 0 ) &
           CALL errore( ' add_vuspsi_k ', ' cannot allocate deeaux_d ', ABS( ierr ) )
        !
+       !$omp target data map(to: ofsbeta) 
        DO nt = 1, ntyp
           !
           IF ( nh(nt) == 0 ) CYCLE
@@ -311,6 +306,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
 #if defined(__OPENMP_GPU)
                 associate(k => becp%k)
 #endif
+                 
                 !$omp target variant dispatch use_device_ptr(k, ofsbeta)
                 CALL ZGEMM('N','N', nh(nt), m, nh(nt), (1.0_dp,0.0_dp), &
 #if defined(__OPENMP_GPU)
@@ -329,6 +325,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
           END DO
           !
        END DO
+       !$omp end target data 
        CALL dev_buf%release_buffer(deeaux_d, ierr) ! DEALLOCATE (deeaux_d)
        !
 !$acc data present(vkb(:,:))
@@ -355,11 +352,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
        USE cudafor
        USE cublas
 #elif defined(__OPENMP_GPU)
-#if defined(MKL_ILP64)
-       USE onemkl_blas_omp_offload_ilp64_no_array_check
-#else
-       USE onemkl_blas_omp_offload_lp64_no_array_check
-#endif
+       USE onemkl_blas_omp_offload_no_array_check
 #endif
        USE devxlib_buffers, ONLY : dev_buf=>gpu_buffer
 #if !defined(__OPENMP_GPU)
@@ -392,6 +385,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
        !
        !  OPTIMIZE HERE: possibly streamline
        !
+       !$omp target data map(to:ofsbeta) 
        DO nt = 1, ntyp
           !
           IF ( nh(nt) == 0 ) CYCLE
@@ -463,6 +457,7 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
           END DO
           !
        END DO
+       !$omp end target data 
        !
 !$acc data present(vkb(:,:))
 !$acc host_data use_device(vkb)
@@ -484,3 +479,5 @@ SUBROUTINE add_vuspsi_gpu( lda, n, m, hpsi_d )
 #endif
      !
 END SUBROUTINE add_vuspsi_gpu
+
+

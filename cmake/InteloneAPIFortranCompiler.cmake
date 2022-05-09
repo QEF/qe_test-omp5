@@ -5,7 +5,7 @@ if(CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 2022.0.0)
 endif()
 
 # set optimization specific flags
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -xCORE-AVX512 -qopt-zmm-usage=high")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -xHOST")
 
 if(QE_ENABLE_OPENMP_OFFLOAD)
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fiopenmp -fopenmp-targets=spir64")

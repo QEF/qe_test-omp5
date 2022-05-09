@@ -154,6 +154,7 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
   CALL start_clock_gpu( 'h_psi' ); !write (*,*) 'start h_psi';FLUSH(6)
   CALL using_g2kin_d(0)
   CALL using_vrs_d(0)
+  print *, "here 1 " 
   !
   ! ... Here we add the kinetic energy (k+G)^2 psi and clean up garbage
   !
@@ -172,6 +173,7 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
   IF (need_host_copy) THEN
       !$omp target update from(psi_d)
   ENDIF
+  print *, "here" 
 #endif
 
   !$cuf kernel do(2)
@@ -198,6 +200,7 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
 #else
      !$omp target update from(hpsi_d)
 #endif
+  print *, "here 4" 
   ENDIF
 
   CALL start_clock_gpu( 'h_psi:pot' ); !write (*,*) 'start h_pot';FLUSH(6)
@@ -215,7 +218,8 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
              CALL errore( 'h_psi', 'task_groups not implemented with real_space', 1 )
 
         CALL using_becp_auto(1)
-        DO ibnd = 1, m, 2
+        print *, 'here !!!' 
+        DO ibnd = 1, m, 2 
            ! ... transform psi to real space -> psic
 #if !defined(__OPENMP_GPU)
            CALL invfft_orbital_gamma(psi_host, ibnd, m )
@@ -263,6 +267,7 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
         IF ( dffts%has_task_groups ) &
              CALL errore( 'h_psi', 'task_groups not implemented with real_space', 1 )
         !
+        print *, 'here ?? ' 
         DO ibnd = 1, m
            ! ... transform psi to real space -> psic
 #if !defined(__OPENMP_GPU)
@@ -296,7 +301,9 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
         !
      ELSE
         !
+        print *, "probably here" 
         CALL vloc_psi_k_gpu ( lda, n, m, psi_d, vrs_d(1,current_spin), hpsi_d )
+        print *, "vloc_psi here fatto" 
         !
      ENDIF
      !
@@ -309,6 +316,7 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
      !
      CALL start_clock_gpu( 'h_psi:calbec' )
      CALL using_becp_d_auto(2)
+     print *, "qui becp_d_auto" 
 !ATTENTION HERE: calling without (:,:) causes segfaults
 !$acc data present(vkb(:,:))
 !$acc host_data use_device(vkb)
@@ -316,6 +324,7 @@ SUBROUTINE h_psi__gpu( lda, n, m, psi_d, hpsi_d )
 !$acc end host_data
 !$acc end data
 !
+     print *, "calbec gpu done"
      CALL stop_clock_gpu( 'h_psi:calbec' )
      CALL add_vuspsi_gpu( lda, n, m, hpsi_d )
      !

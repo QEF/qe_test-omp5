@@ -84,7 +84,10 @@
          implicit none
          INTEGER, INTENT(IN) :: intento
          CHARACTER(len=*), INTENT(IN), OPTIONAL :: debug_info
-#if defined(__CUDA) || defined(__CUDA_GNU)
+
+#if defined(__OPENMP_GPU) 
+         !$omp target update from(vrs) if ( vrs_d_ood)  
+#elif defined(__CUDA) || defined(__CUDA_GNU)
          !
          IF (PRESENT(debug_info) ) print *, "using_vrs_d ", debug_info, vrs_d_ood
          !

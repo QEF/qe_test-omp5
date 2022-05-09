@@ -238,6 +238,7 @@ SUBROUTINE vloc_psi_gamma_gpu(lda, n, m, psi_d, v_d, hpsi_d)
         !
      ELSE IF ( many_fft > 1 ) THEN
         !
+        print *, "here many_fft>1" 
         !$omp dispatch is_device_ptr(psic_d)
         CALL invfft (2, psic_d, dffts, howmany=howmany)
         !
@@ -255,6 +256,7 @@ SUBROUTINE vloc_psi_gamma_gpu(lda, n, m, psi_d, v_d, hpsi_d)
         !
      ELSE
         !
+        print *, "here many_fft==1" 
         !$omp dispatch is_device_ptr(psic_d)
         CALL invfft (2, psic_d, dffts)
         !
@@ -409,7 +411,7 @@ SUBROUTINE vloc_psi_k_gpu(lda, n, m, psi_d, v_d, hpsi_d)
   !
   INTEGER, INTENT(in) :: lda, n, m
   COMPLEX(DP), INTENT(in)   :: psi_d (lda, m)
-  COMPLEX(DP), INTENT(inout):: hpsi_d (lda, m)
+  COMPLEX(DP), target, INTENT(inout):: hpsi_d (lda, m)
   REAL(DP),    INTENT(in)   :: v_d(dffts%nnr)
 #if defined(__CUDA)
   attributes(DEVICE) :: psi_d, hpsi_d, v_d
@@ -545,6 +547,7 @@ SUBROUTINE vloc_psi_k_gpu(lda, n, m, psi_d, v_d, hpsi_d)
         !
      ENDDO
   ELSE IF (many_fft > 1) THEN
+     print *, "here manyfft " 
      DO ibnd = 1, m, many_fft
         !
         !!! == OPTIMIZE HERE == (setting to 0 and setting elements!)
@@ -567,6 +570,7 @@ SUBROUTINE vloc_psi_k_gpu(lda, n, m, psi_d, v_d, hpsi_d)
            END DO
         END DO
         !
+        print *, omp_target_is_present(c_loc(psic_d), omp_get_default_device())
         !$omp dispatch is_device_ptr(psic_d)
         CALL invfft (2, psic_d, dffts, howmany=group_size)
         !
@@ -581,9 +585,11 @@ SUBROUTINE vloc_psi_k_gpu(lda, n, m, psi_d, v_d, hpsi_d)
         !
         !$omp dispatch is_device_ptr(psic_d)
         CALL fwfft (2, psic_d, dffts, howmany=group_size)
+        print *, "second fft done" 
         !
         !   addition to the total product
         !
+        print *, omp_target_is_present(c_loc(hpsi_d), omp_get_default_device())
 !$cuf kernel do(2) <<<*,*>>>
 !$omp target teams distribute parallel do collapse(2)
         DO idx = 0, group_size-1
@@ -594,6 +600,7 @@ SUBROUTINE vloc_psi_k_gpu(lda, n, m, psi_d, v_d, hpsi_d)
         !
      ENDDO
   ELSE
+     print *, "here not so many ffts " 
      DO ibnd = 1, m
         !
         !!! == OPTIMIZE HERE == (setting to 0 and setting elements!)

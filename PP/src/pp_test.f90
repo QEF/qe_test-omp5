@@ -137,9 +137,10 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
    USE wavefunctions,    ONLY : evc, psic
    USE pw_restart_new,   ONLY : read_collected_wfc
    USE mp,               ONLY : mp_sum
-   USE becmod_subs_gpum, ONLY : calbec_gpu, allocate_bec_type_gpu
+   USE becmod_subs_gpum, ONLY : calbec_gpu, allocate_bec_type_gpu, using_becp_auto
    USE test_hpsi_io
    USE laxlib
+   USE control_flags, ONLY: use_gpu 
    !
    IMPLICIT NONE
    !
@@ -153,12 +154,13 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
    REAL(DP),    ALLOCATABLE :: en(:)
    INTEGER :: ik, npw, ik_start, ik_stop, i, ibnd
    CHARACTER(LEN=320) ::  filename
-   LOGICAL             :: ionode = .TRUE., use_gpu
+   LOGICAL             :: ionode = .TRUE.
    COMPLEX(DP)         :: res
    CHARACTER(LEN=6), EXTERNAL :: int_to_char
    LOGICAL, EXTERNAL :: check_gpu_support
    !
    use_gpu = check_gpu_support( )
+   print '("GPU SUPPORT IS ",L)' , use_gpu 
    call ik_check(ik_in, ik_start, nkstot, 1, write_ref)
    call ik_check(ik_end, ik_stop, nkstot, nkstot, write_ref)
    print *, ik_start, ik_stop
@@ -168,17 +170,18 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
    ALLOCATE( sc( nbnd, nbnd) )
    ALLOCATE( vc( nbnd, nbnd) )
    ALLOCATE( en( nbnd ) )
+
    !$omp target enter data map(alloc:aux, hc, sc) if(use_gpu)
-   IF (use_gpu) THEN
-      CALL allocate_bec_type_gpu(nkb, nbnd, becp)
-   ELSE
       CALL allocate_bec_type(nkb, nbnd, becp )
-   ENDIF
+      if (use_gpu)   CALL using_becp_auto(2)  
    CALL set_vrs(vrs,vltot,v%of_r,kedtau,v%kin_r,dfftp%nnr,nspin,doublegrid)
 
    DO ik = ik_start, ik_stop
       !
       CALL read_collected_wfc( restart_dir() , ik, evc )
+      !$omp target enter data map(to:evc) if(use_gpu) 
+      print *, 'read all data from previous run' 
+
       !
       npw          = ngk(ik)
       current_k    = ik
@@ -195,6 +198,7 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
          CALL g2_kin(ik)
          CALL h_psi( npwx, npw, nbnd, evc, aux )
       ENDIF
+      print *, "h_psi done" 
       !
       filename = trim(restart_dir())//"hpsi_"//trim(int_to_char(ik))//".dat"
       if (write_ref ) then
