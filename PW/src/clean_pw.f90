@@ -137,8 +137,14 @@ SUBROUTINE clean_pw( lflag )
   IF ( ALLOCATED( vltot  ) )     DEALLOCATE( vltot  )
   IF ( ALLOCATED( rho_core  ) )  DEALLOCATE( rho_core  )
   IF ( ALLOCATED( rhog_core ) )  DEALLOCATE( rhog_core )
-  IF ( ALLOCATED( psic    ) )    DEALLOCATE( psic    )
-  IF ( ALLOCATED( psic_nc ) )    DEALLOCATE( psic_nc )
+  IF ( ALLOCATED( psic    ) )    THEN
+          !$omp target exit data map(delete:psic)
+          DEALLOCATE( psic    )
+  ENDIF
+  IF ( ALLOCATED( psic_nc ) )    THEN
+          !$omp target exit data map(delete:psic_nc)
+          DEALLOCATE( psic_nc )
+  ENDIF
   IF ( ALLOCATED( vrs     ) )    DEALLOCATE( vrs     )
   CALL deallocate_scf_gpu()
   !
