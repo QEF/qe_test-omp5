@@ -170,21 +170,21 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
    USE pw_restart_new,   ONLY : read_collected_wfc
    USE mp,               ONLY : mp_sum
    USE becmod_subs_gpum, ONLY : calbec_gpu, allocate_bec_type_gpu, using_becp_auto
-	 USE controlo_flags,   ONLY : use_gpu, gamma_only 
+	 USE control_flags,   ONLY : use_gpu, gamma_only 
 	 USE noncollin_module, ONLY : noncolin 
    USE test_hpsi_io
-	 #if defined(__OPEMP_GPU)
+#if defined(__OPENMP_GPU)
    USE laxlib 
-	 #endif 
+#endif 
    !
    IMPLICIT NONE
    !
    INTEGER, INTENT(IN)  :: ik_in, ik_end
    LOGICAL, INTENT(IN)  :: write_ref
    !
-	 #if !defined(__OPENMP_GPU)
+#if !defined(__OPENMP_GPU)
    INCLUDE 'laxlib.fh'
-	 #endif 
+#endif 
    !
    COMPLEX(DP), ALLOCATABLE :: aux(:,:), aux_check(:,:)
    COMPLEX(DP), ALLOCATABLE :: hc(:,:), sc(:,:), vc(:,:)
