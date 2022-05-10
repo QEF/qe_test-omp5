@@ -3,43 +3,75 @@
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
-MODULE test_hpsi_io
-   USE kinds, ONLY: dp
-   IMPLICIT NONE
-   PRIVATE
-   PUBLIC write_data_serial, read_data_serial
-
-   CONTAINS
-
-   SUBROUTINE write_data_serial(filename, npw, nbnd, data)
-      implicit none
-      character(len=*),intent(in) :: filename
-      integer, intent(in)         :: npw, nbnd
-      complex(dp),intent(in)      :: data(:,:)
-      integer :: unit = 855
-      !
-      print *, trim(filename)
-      open (unit = unit, file=trim(filename), form = 'unformatted', status='unknown')
-      write (unit) npw, nbnd
-      write (unit) data(1:npw, 1:nbnd)
-      close (unit)
-   END SUBROUTINE write_data_serial
-
-   SUBROUTINE read_data_serial(filename, npw, nbnd, data )
-      implicit none
-      character(len=*),intent(in) :: filename
-      integer,intent(in) :: npw, nbnd
-      complex(dp) :: data(:,:)
-      !
-      integer :: unit = 856
-      integer :: npw_, nbnd_
-      open (unit=unit, file=trim(filename), form='unformatted', status='old')
-      read(unit) npw_, nbnd_
-      if ( npw_ /= npw .or. nbnd_ /= nbnd) call errore('read_data wrong dims:', trim(filename),1)
-      read(unit) data(1:npw_, 1:nbnd_)
-   END SUBROUTINE read_data_serial
-END MODULE test_hpsi_io
-
+MODULE test_hpsi_io 
+	USE kinds, ONLY: dp 
+	IMPLICIT NONE 
+	PRIVATE 
+	PUBLIC write_data_serial, read_data_serial 
+	interface write_data_serial 
+		module procedure  write_data_serial_z,  write_data_serial_r 
+	end interface write_data_serial 
+  interface read_data_serial 
+	  module procedure read_data_serial_z, read_data_serial_r 
+  end interface read_data_serial 
+CONTAINS 	
+  SUBROUTINE write_data_serial_z(filename, npw, nbnd, data)
+  	implicit none
+  	character(len=*),intent(in)   :: filename
+  	integer, intent(in)           :: npw, nbnd 
+  	complex(dp),intent(in)        :: data(:,:) 
+  	!
+  	integer :: unit = 855
+		print *, trim(filename)
+  	open (unit = unit, file=trim(filename), form = 'unformatted', status='unknown')
+  	write (unit) npw, nbnd 
+  	write (unit) data(1:npw, 1:nbnd)
+  	close (unit)
+  END SUBROUTINE write_data_serial_z 
+  
+  SUBROUTINE read_data_serial_z(filename, npw, nbnd, data )
+  	implicit none
+  	character(len=*),intent(in) :: filename
+  	integer,intent(in) :: npw, nbnd 
+  	complex(dp) :: data(:,:)
+  	!
+  	integer :: unit = 856
+  	integer :: npw_, nbnd_ 
+  	open (unit=unit, file=trim(filename), form='unformatted', status='old') 
+  	read(unit) npw_, nbnd_ 
+  	if ( npw_ /= npw .or. nbnd_ /= nbnd) call errore('read_data wrong dims:', trim(filename),1)
+  	read(unit) data(1:npw_, 1:nbnd_)
+  END SUBROUTINE	read_data_serial_z
+	!
+	SUBROUTINE write_data_serial_r(filename, npw, nbnd, data)
+  	implicit none
+  	character(len=*),intent(in)   :: filename
+  	integer, intent(in)           :: npw, nbnd 
+  	real(dp),intent(in)           :: data(:,:) 
+  	!
+  	integer :: unit = 855
+		print *, trim(filename)
+  	open (unit = unit, file=trim(filename), form = 'unformatted', status='unknown')
+  	write (unit) npw, nbnd 
+  	write (unit) data(1:npw, 1:nbnd)
+  	close (unit)
+  END SUBROUTINE write_data_serial_r 
+  
+  SUBROUTINE read_data_serial_r(filename, npw, nbnd, data )
+  	implicit none
+  	character(len=*),intent(in) :: filename
+  	integer,intent(in)          :: npw, nbnd 
+  	real(dp)                    :: data(:,:)
+  	!
+  	integer :: unit = 856
+  	integer :: npw_, nbnd_ 
+  	open (unit=unit, file=trim(filename), form='unformatted', status='old') 
+  	read(unit) npw_, nbnd_ 
+  	if ( npw_ /= npw .or. nbnd_ /= nbnd) call errore('read_data wrong dims:', trim(filename),1)
+  	read(unit) data(1:npw_, 1:nbnd_)
+  END SUBROUTINE	read_data_serial_r
+	 
+END MODULE test_hpsi_io   
 !-----------------------------------------------------------------------
 PROGRAM test_hpsi
    !-----------------------------------------------------------------------
@@ -138,24 +170,30 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
    USE pw_restart_new,   ONLY : read_collected_wfc
    USE mp,               ONLY : mp_sum
    USE becmod_subs_gpum, ONLY : calbec_gpu, allocate_bec_type_gpu, using_becp_auto
+	 USE controlo_flags,   ONLY : use_gpu, gamma_only 
+	 USE noncollin_module, ONLY : noncolin 
    USE test_hpsi_io
-   USE laxlib
-   USE control_flags, ONLY: use_gpu 
+	 #if defined(__OPEMP_GPU)
+   USE laxlib 
+	 #endif 
    !
    IMPLICIT NONE
    !
    INTEGER, INTENT(IN)  :: ik_in, ik_end
    LOGICAL, INTENT(IN)  :: write_ref
    !
-   !INCLUDE 'laxlib.fh'
+	 #if !defined(__OPENMP_GPU)
+   INCLUDE 'laxlib.fh'
+	 #endif 
    !
    COMPLEX(DP), ALLOCATABLE :: aux(:,:), aux_check(:,:)
    COMPLEX(DP), ALLOCATABLE :: hc(:,:), sc(:,:), vc(:,:)
-   REAL(DP),    ALLOCATABLE :: en(:)
+   REAL(DP),    ALLOCATABLE :: en(:), raux_check(:,:)
    INTEGER :: ik, npw, ik_start, ik_stop, i, ibnd
    CHARACTER(LEN=320) ::  filename
-   LOGICAL             :: ionode = .TRUE.
+   LOGICAL             :: ionode = .TRUE., gamma_case, k_case, nc_case
    COMPLEX(DP)         :: res
+	 REAL(DP)            :: rres
    CHARACTER(LEN=6), EXTERNAL :: int_to_char
    LOGICAL, EXTERNAL :: check_gpu_support
    !
@@ -189,12 +227,63 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
       !
       CALL init_us_2(npw, igk_k(1,ik), xk (1, ik), vkb)
       IF (use_gpu) THEN
-         CALL calbec_gpu( npw, vkb, evc, becp)
+        CALL calbec_gpu( npw, vkb, evc, becp)
+			ELSE 
+				CALL calbec( npw, vkb, evc, becp)
+			END IF 
+#if defined (__OPEMP_GPU) 
+      gamma_case = gamma_only 
+			nc_case    = noncolin 
+			k_case  = .not. (gamma_only .or. noncolin) 
+			!$omp target update from (becp%r) if(gamma_case) 
+      !$omp target update from (becp%k) if(k_case)
+      !$omp target update from (becp%nc) if(nc_case) 
+#endif 
+      filename = trim(restart_dir())//"becp_"//trim(int_to_char(ik))//".dat"
+		  if (write_ref) then 
+				if (gamma_only) then
+					call write_data_serial(filename, nkb, nbnd, becp%r) 
+				else if (noncolin) then
+					!$omp target update from (becp%nc)
+					call write_data_serial(filename, nkb, nbnd, becp%nc(:,1,:)) 
+				else 
+					call write_data_serial(filename, nkb, nbnd, becp%k) 
+				end if 
+			else 
+				if (gamma_only) then 
+					allocate(raux_check(nkb,nbnd)) 
+					call read_data_serial( filename, nkb, nbnd, raux_check)
+					rres = 0.d0 
+					do ibnd = 1, nbnd 
+						rres = rres + dot_product (raux_check(:,ibnd) - becp%r(:,ibnd) , raux_check(:,ibnd) - becp%r(:,ibnd)) 
+					end do 
+				  if (ionode) then 
+						print '("check on becp, sum of residuals for k = ", I5, " : ", F16.8)', ik , rres 
+					end if 
+					deallocate (raux_check) 
+				else
+					allocate(aux_check(nkb,nbnd)) 
+					call read_data_serial (filename, nkb, nbnd, aux_check) 
+					res = (0.d0, 0.d0) 
+					if (noncolin) then 
+						do ibnd = 1, nbnd 
+							res = res + dot_product( aux_check(:,ibnd) - becp%nc(:,1,ibnd), aux_check(:,ibnd) - becp%nc(:,1,ibnd)) 
+						end do 
+					else 
+						do ibnd = 1, nbnd 
+							res = res + dot_product (aux_check(:,ibnd) - becp%k(:,ibnd), aux_check(:,ibnd) - becp%k(:,ibnd))
+						end do 
+					end if  
+					if (ionode ) print '("check on becp, sum of residuals in node 0 for k = ", I5, " : ", 2F16.8)', ik, res
+					deallocate(aux_check)
+				end if 
+  	  end if 
+      
+			IF (use_gpu) THEN 
          CALL g2_kin_gpu(ik)
          CALL h_psi_gpu( npwx, npw, nbnd, evc, aux )
          !$omp target update from(aux)
       ELSE
-         CALL calbec( npw, vkb, evc, becp)
          CALL g2_kin(ik)
          CALL h_psi( npwx, npw, nbnd, evc, aux )
       ENDIF
