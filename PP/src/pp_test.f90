@@ -10,8 +10,14 @@ MODULE test_hpsi_io
 	IMPLICIT NONE 
 	PRIVATE 
 	PUBLIC write_data_serial, read_data_serial 
+	interface write_data_serial 
+		module procedure  write_data_serial_z,  write_data_serial_r 
+	end interface write_data_serial 
+  interface read_data_serial 
+	  module procedure read_data_serial_z, read_data_serial_r 
+  end interface read_data_serial 
 CONTAINS 	
-  SUBROUTINE write_data_serial(filename, npw, nbnd, data)
+  SUBROUTINE write_data_serial_z(filename, npw, nbnd, data)
   	implicit none
   	character(len=*),intent(in)   :: filename
   	integer, intent(in)           :: npw, nbnd 
@@ -23,9 +29,9 @@ CONTAINS
   	write (unit) npw, nbnd 
   	write (unit) data(1:npw, 1:nbnd)
   	close (unit)
-  END SUBROUTINE write_data_serial 
+  END SUBROUTINE write_data_serial_z 
   
-  SUBROUTINE read_data_serial(filename, npw, nbnd, data )
+  SUBROUTINE read_data_serial_z(filename, npw, nbnd, data )
   	implicit none
   	character(len=*),intent(in) :: filename
   	integer,intent(in) :: npw, nbnd 
@@ -37,7 +43,36 @@ CONTAINS
   	read(unit) npw_, nbnd_ 
   	if ( npw_ /= npw .or. nbnd_ /= nbnd) call errore('read_data wrong dims:', trim(filename),1)
   	read(unit) data(1:npw_, 1:nbnd_)
-  END SUBROUTINE	read_data_serial 
+  END SUBROUTINE	read_data_serial_z
+	!
+	SUBROUTINE write_data_serial_r(filename, npw, nbnd, data)
+  	implicit none
+  	character(len=*),intent(in)   :: filename
+  	integer, intent(in)           :: npw, nbnd 
+  	real(dp),intent(in)           :: data(:,:) 
+  	!
+  	integer :: unit = 855
+		print *, trim(filename)
+  	open (unit = unit, file=trim(filename), form = 'unformatted', status='unknown')
+  	write (unit) npw, nbnd 
+  	write (unit) data(1:npw, 1:nbnd)
+  	close (unit)
+  END SUBROUTINE write_data_serial_r 
+  
+  SUBROUTINE read_data_serial_r(filename, npw, nbnd, data )
+  	implicit none
+  	character(len=*),intent(in) :: filename
+  	integer,intent(in)          :: npw, nbnd 
+  	real(dp)                    :: data(:,:)
+  	!
+  	integer :: unit = 856
+  	integer :: npw_, nbnd_ 
+  	open (unit=unit, file=trim(filename), form='unformatted', status='old') 
+  	read(unit) npw_, nbnd_ 
+  	if ( npw_ /= npw .or. nbnd_ /= nbnd) call errore('read_data wrong dims:', trim(filename),1)
+  	read(unit) data(1:npw_, 1:nbnd_)
+  END SUBROUTINE	read_data_serial_r
+	 
 END MODULE test_hpsi_io  
   
  
@@ -138,6 +173,8 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
   USE wavefunctions,  ONLY : evc, psic
   USE pw_restart_new, ONLY : read_collected_wfc
 	USE mp,ONLY :  mp_sum 
+	USE control_flags, ONLY : gamma_only
+	USE noncollin_module, ONLY : noncolin 
   USE test_hpsi_io  
 
   !
@@ -150,11 +187,12 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
   ! 
   COMPLEX(DP), ALLOCATABLE :: aux(:,:),aux_check(:,:)
   COMPLEX(DP), ALLOCATABLE :: hc(:,:), sc(:,:), vc(:,:)
-  REAL(DP),    ALLOCATABLE :: en(:)
+  REAL(DP),    ALLOCATABLE :: en(:), raux_check(:,:)
   INTEGER :: ik, npw, ik_start, ik_stop, i, ibnd 
 	CHARACTER(LEN=320) ::  filename  
 	LOGICAL             :: ionode = .TRUE. 
 	COMPLEX(DP)         :: res 
+	REAL(DP)            :: rres
 	CHARACTER(LEN=6),EXTERNAL  :: int_to_char 
   !
 	call ik_check(ik_in, ik_start, nkstot, 1, write_ref)
@@ -181,6 +219,45 @@ SUBROUTINE run_tests (ik_in, ik_end, write_ref )
     !
     CALL init_us_2 (npw, igk_k(1,ik), xk (1, ik), vkb)
 		CALL calbec ( npw, vkb, evc, becp)
+		filename = trim(restart_dir())//"becp_"//trim(int_to_char(ik))//".dat"
+		if (write_ref) then 
+			if (gamma_only) then 
+				call write_data_serial(filename, nkb, nbnd, becp%r) 
+			else if (noncolin) then 
+				call write_data_serial(filename, nkb, nbnd, becp%nc(:,1,:)) 
+			else 
+				call write_data_serial(filename, nkb, nbnd, becp%k) 
+			end if 
+		else 
+			if (gamma_only) then 
+				allocate(raux_check(nkb,nbnd)) 
+				call read_data_serial( filename, nkb, nbnd, raux_check)
+				rres = 0.d0 
+				do ibnd = 1, nbnd 
+					rres = rres + dot_product (raux_check(:,ibnd) - becp%r(:,ibnd) , raux_check(:,ibnd) - becp%r(:,ibnd)) 
+				end do 
+			  if (ionode) then 
+					print '("check on becp, sum of residuals for k = ", I5, " : ", F16.8)', ik , rres 
+				end if 
+				deallocate (raux_check) 
+			else
+				allocate(aux_check(nkb,nbnd)) 
+				call read_data_serial (filename, nkb, nbnd, aux_check) 
+				res = (0.d0, 0.d0) 
+				if (noncolin) then 
+					do ibnd = 1, nbnd 
+						res = res + dot_product( aux_check(:,ibnd) - becp%nc(:,1,ibnd), aux_check(:,ibnd) - becp%nc(:,1,ibnd)) 
+					end do 
+				else 
+					do ibnd = 1, nbnd 
+						res = res + dot_product (aux_check(:,ibnd) - becp%k(:,ibnd), aux_check(:,ibnd) - becp%k(:,ibnd))
+					end do 
+				end if  
+				if (ionode ) print '("check on becp, sum of residuals in node 0 for k = ", I5, " : ", 2F16.8)', ik, res
+				deallocate(aux_check)
+			end if 
+    end if 
+	  ! 
 	  CALL g2_kin (ik)
     !
     CALL h_psi( npwx, npw, nbnd, evc, aux )
