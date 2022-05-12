@@ -15,7 +15,7 @@ program test_diaghg_3
     CALL test%init()
     test%tolerance64=1.d-8
     !
-#if defined(__MPI)    
+#if defined(__MPI)
     world_group = MPI_COMM_WORLD
 #endif
     CALL mp_world_start(world_group)
@@ -41,7 +41,7 @@ program test_diaghg_3
     implicit none
     !
     TYPE(tester_t) :: test
-    ! 
+    !
     integer :: ldh, n, m
     real(DP), allocatable :: h(:,:)
     real(DP), allocatable :: h_save(:,:)
@@ -76,7 +76,12 @@ program test_diaghg_3
         !
         v = (0.d0, 0.d0)
         e = 0.d0
+        !
+#if defined(__OPENMP_GPU)
+        CALL diaghg( n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm )
+#else
         CALL diaghg(  n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm, .false. )
+#endif
         !
         CALL test%assert_close( e(1:m), e_save(1:m) )
         !
@@ -85,8 +90,14 @@ program test_diaghg_3
         s = s_save
         v = (0.d0, 0.d0)
         e = 0.d0
+#if defined(__OPENMP_GPU)
+        !$omp target data map(tofrom:h,s,e,v)
+        !$omp dispatch
+        CALL diaghg( n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm )
+        !$omp end target data
+#else
         CALL diaghg( n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm, .true. )
-        !
+#endif
         CALL test%assert_close( e(1:m), e_save(1:m))
         DEALLOCATE(h,s,e,v,h_save,s_save,e_save,v_save)
     END DO
@@ -100,7 +111,7 @@ program test_diaghg_3
     implicit none
     !
     TYPE(tester_t) :: test
-    ! 
+    !
     integer :: ldh, n, m
     complex(DP), allocatable :: h(:,:)
     complex(DP), allocatable :: h_save(:,:)
@@ -138,7 +149,11 @@ program test_diaghg_3
         !
         v = (0.d0, 0.d0)
         e = 0.d0
+#if defined(__OPENMP_GPU)
+        CALL diaghg( n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm )
+#else
         CALL diaghg(  n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm, .false. )
+#endif
         !
         CALL test%assert_close( e(1:m), e_save(1:m) )
         !
@@ -147,12 +162,19 @@ program test_diaghg_3
         s = s_save
         v = (0.d0, 0.d0)
         e = 0.d0
+#if defined(__OPENMP_GPU)
+        !$omp target data map(tofrom:h,s,e,v)
+        !$omp dispatch
+        CALL diaghg( n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm )
+        !$omp end target data
+#else
         CALL diaghg( n, m, h, s, ldh, e, v, me_bgrp, root_bgrp, intra_bgrp_comm, .true. )
+#endif
         !
         CALL test%assert_close( e(1:m), e_save(1:m))
         DEALLOCATE(h,s,e,v,h_save,s_save,e_save,v_save)
     END DO
     !
   END SUBROUTINE complex_1
-  
+
 end program test_diaghg_3

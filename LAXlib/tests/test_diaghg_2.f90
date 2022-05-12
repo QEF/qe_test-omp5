@@ -14,7 +14,7 @@ program test_diaghg_2
     !
     CALL test%init()
     !
-#if defined(__MPI)    
+#if defined(__MPI)
     world_group = MPI_COMM_WORLD
 #endif
     CALL mp_world_start(world_group)
@@ -36,7 +36,7 @@ program test_diaghg_2
     implicit none
     !
     TYPE(tester_t) :: test
-    ! 
+    !
     integer, parameter :: m_size=1024
     complex(DP) :: h(m_size,m_size)
     complex(DP) :: h_save(m_size,m_size)
@@ -56,9 +56,13 @@ program test_diaghg_2
     !
     v = (0.d0, 0.d0)
     e = 0.d0
-
+    !
+#if defined(__OPENMP_GPU)
+    CALL diaghg(  m_size, m_size, h, s, m_size, e, v, me_bgrp, root_bgrp, intra_bgrp_comm )
+#else
     CALL diaghg(  m_size, m_size, h, s, m_size, e, v, me_bgrp, root_bgrp, intra_bgrp_comm, .false. )
-    ! 
+#endif
+    !
     DO j = 1, m_size
        CALL test%assert_close( h(1:m_size, j), h_save(1:m_size, j))
        CALL test%assert_close( s(1:m_size, j), s_save(1:m_size, j))
@@ -69,7 +73,15 @@ program test_diaghg_2
     !
     v = (0.d0, 0.d0)
     e = 0.d0
+    !
+#if defined(__OPENMP_GPU)
+    !$omp target data map(tofrom:h,s,e,v)
+    !$omp dispatch
+    CALL diaghg(  m_size, m_size, h, s, m_size, e, v, me_bgrp, root_bgrp, intra_bgrp_comm )
+    !$omp end target data
+#else
     CALL diaghg(  m_size, m_size, h, s, m_size, e, v, me_bgrp, root_bgrp, intra_bgrp_comm, .true. )
+#endif
     !
     DO j = 1, m_size
        CALL test%assert_close( h(1:m_size, j), h_save(1:m_size, j))
@@ -87,7 +99,7 @@ program test_diaghg_2
     IMPLICIT NONE
     integer, intent(in) :: mSize
     complex(dp), intent(out) :: M(mSize,mSize)
-    !       
+    !
     real(dp), allocatable :: rnd(:)
     INTEGER :: h, k, j
     !
@@ -110,5 +122,5 @@ program test_diaghg_2
     END DO
     !
   END SUBROUTINE hermitian
-  
+
 end program test_diaghg_2

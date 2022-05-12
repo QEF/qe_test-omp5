@@ -6,6 +6,50 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !
+#if defined(__OPENMP_GPU)
+INTERFACE
+SUBROUTINE laxlib_dsqmsym_x_omp( n, a, lda, idesc )
+   IMPLICIT NONE
+   include 'laxlib_kinds.fh'
+   include 'laxlib_param.fh'
+   INTEGER, INTENT(IN)     :: n
+   INTEGER, INTENT(IN)     :: lda
+   REAL(DP), INTENT(INOUT) :: a(:,:)
+   INTEGER, INTENT(IN)     :: idesc(LAX_DESC_SIZE)
+END SUBROUTINE
+SUBROUTINE sqr_dmm_cannon_x_omp( transa, transb, n, alpha, a, lda, b, ldb, beta, c, ldc, idesc )
+   IMPLICIT NONE
+   include 'laxlib_kinds.fh'
+   include 'laxlib_param.fh'
+   CHARACTER(LEN=1), INTENT(IN) :: transa, transb
+   INTEGER,          INTENT(IN) :: n
+   REAL(DP),         INTENT(IN) :: alpha, beta
+   INTEGER,          INTENT(IN) :: lda, ldb, ldc
+   REAL(DP),         INTENT(IN) :: a(:,:), b(:,:), c(:,:)
+   INTEGER,          INTENT(IN) :: idesc(LAX_DESC_SIZE)
+END SUBROUTINE
+SUBROUTINE sqr_tr_cannon_x_omp( n, a, lda, b, ldb, idesc )
+   IMPLICIT NONE
+   include 'laxlib_kinds.fh'
+   include 'laxlib_param.fh'
+   INTEGER,  INTENT(IN)  :: n
+   INTEGER,  INTENT(IN)  :: lda, ldb
+   REAL(DP), INTENT(IN)  :: a(:,:)
+   REAL(DP), INTENT(OUT) :: b(:,:)
+   INTEGER,  INTENT(IN)  :: idesc(:)
+END SUBROUTINE
+SUBROUTINE redist_row2col_x_omp( n, a, b, ldx, nx, idesc )
+   IMPLICIT NONE
+   include 'laxlib_kinds.fh'
+   include 'laxlib_param.fh'
+   INTEGER,  INTENT(IN) :: n
+   INTEGER,  INTENT(IN) :: ldx, nx
+   REAL(DP), INTENT(IN) :: a(:,:)
+   REAL(DP), INTENT(IN) :: b(:,:)
+   INTEGER,  INTENT(IN) :: idesc(LAX_DESC_SIZE)
+END SUBROUTINE
+ENDINTERFACE
+#endif
 
 INTERFACE laxlib_start
   SUBROUTINE laxlib_start_drv( ndiag_, parent_comm, do_distr_diag_inside_bgrp_  )
@@ -14,7 +58,7 @@ INTERFACE laxlib_start
     INTEGER, INTENT(IN) :: parent_comm ! parallel communicator inside which the distributed linear algebra group
                                        ! communicators are created
     LOGICAL, INTENT(IN) :: do_distr_diag_inside_bgrp_  ! comme son nom l'indique
-  END SUBROUTINE 
+  END SUBROUTINE
 END INTERFACE laxlib_start
 
 INTERFACE laxlib_getval
@@ -61,7 +105,7 @@ INTERFACE zhpev_drv
      INTEGER   ::       LDZ, N
      COMPLEX(DP) ::  AP( * ), Z( LDZ, * )
      REAL(DP) ::  W( * )
-   END SUBROUTINE 
+   END SUBROUTINE
    SUBROUTINE pzhpev_drv_x( jobz, ap, lda, w, z, ldz, nrl, n, nproc, mpime, comm )
      IMPLICIT NONE
      include 'laxlib_kinds.fh'
@@ -70,7 +114,7 @@ INTERFACE zhpev_drv
      INTEGER, INTENT(IN) :: comm
      COMPLEX(DP) :: ap( lda, * ), z( ldz, * )
      REAL(DP) :: w( * )
-   END SUBROUTINE 
+   END SUBROUTINE
 END INTERFACE
 
    INTERFACE distribute_lambda
@@ -204,7 +248,6 @@ END INTERFACE
       END SUBROUTINE
    END INTERFACE
 
-
 INTERFACE laxlib_dsqmred
 SUBROUTINE laxlib_dsqmred_x( na, a, lda, idesca, nb, b, ldb, idescb )
    IMPLICIT NONE
@@ -246,6 +289,9 @@ SUBROUTINE laxlib_dsqmsym_x( n, a, lda, idesc )
    INTEGER, INTENT(IN) :: lda
    REAL(DP)            :: a(lda,*)
    INTEGER, INTENT(IN) :: idesc(LAX_DESC_SIZE)
+#if defined(__OPENMP_GPU)
+   !$omp declare variant (laxlib_dsqmsym_x_omp) match( construct={dispatch} )
+#endif
 END SUBROUTINE
 #if defined (__CUDA)
 SUBROUTINE laxlib_dsqmsym_gpu_x( n, a, lda, idesc )
@@ -298,7 +344,6 @@ SUBROUTINE sqr_zsetmat_x( what, n, alpha, a, lda, idesc )
 END SUBROUTINE
 END INTERFACE
 
-
 INTERFACE sqr_mm_cannon
 SUBROUTINE sqr_dmm_cannon_x( transa, transb, n, alpha, a, lda, b, ldb, beta, c, ldc, idesc )
    IMPLICIT NONE
@@ -310,6 +355,9 @@ SUBROUTINE sqr_dmm_cannon_x( transa, transb, n, alpha, a, lda, b, ldb, beta, c, 
    INTEGER, INTENT(IN) :: lda, ldb, ldc
    REAL(DP) :: a(lda,*), b(ldb,*), c(ldc,*)
    INTEGER, INTENT(IN) :: idesc(LAX_DESC_SIZE)
+#if defined(__OPENMP_GPU)
+   !$omp declare variant (sqr_dmm_cannon_x_omp) match( construct={dispatch} )
+#endif
 END SUBROUTINE
 #if defined (__CUDA)
 SUBROUTINE sqr_dmm_cannon_gpu_x( transa, transb, n, alpha, a, lda, b, ldb, beta, c, ldc, idesc )
@@ -357,6 +405,9 @@ SUBROUTINE sqr_tr_cannon_x( n, a, lda, b, ldb, idesc )
    INTEGER, INTENT(IN) :: lda, ldb
    REAL(DP)            :: a(lda,*), b(ldb,*)
    INTEGER, INTENT(IN) :: idesc(LAX_DESC_SIZE)
+#if defined(__OPENMP_GPU)
+   !$omp declare variant (sqr_tr_cannon_x_omp) match( construct={dispatch} )
+#endif
 END SUBROUTINE
 SUBROUTINE sqr_tr_cannon_sp_x( n, a, lda, b, ldb, idesc )
    IMPLICIT NONE
@@ -390,6 +441,9 @@ SUBROUTINE redist_row2col_x( n, a, b, ldx, nx, idesc )
    INTEGER, INTENT(IN) :: ldx, nx
    REAL(DP)            :: a(ldx,nx), b(ldx,nx)
    INTEGER, INTENT(IN) :: idesc(LAX_DESC_SIZE)
+#if defined(__OPENMP_GPU)
+   !$omp declare variant (redist_row2col_x_omp) match( construct={dispatch} )
+#endif
 END SUBROUTINE
 #if defined (__CUDA)
 SUBROUTINE redist_row2col_gpu_x( n, a, b, ldx, nx, idesc )

@@ -2,14 +2,13 @@
 
 include ../make.inc
 
-
 EXTLIBS=$(CUDA_LIBS) $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS) $(MPI_LIBS)
-
 
 LAX = la_types.o \
 la_error.o \
 la_module.o \
 la_helper.o \
+onemkl_omp_offload.o \
 cdiaghg.o \
 rdiaghg.o \
 dspev_drv.o \
@@ -20,15 +19,13 @@ zhpev_drv.o \
 mp_diag.o \
 la_param.o
 
-
 all : libqela.a
 
-
 libqela.a:  $(LAX)
-	$(AR) $(ARFLAGS) $@ $?       
-	$(RANLIB) $@    
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
 
-la_test.x : test.o libqela.a 
+la_test.x : test.o libqela.a
 	$(LD) $(LDFLAGS) -o la_test.x test.o libqela.a $(EXTLIBS)
 
 TEST : la_test.x

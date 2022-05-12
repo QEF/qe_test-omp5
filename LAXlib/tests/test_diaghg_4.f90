@@ -29,7 +29,7 @@ program test_diaghg_4
     CALL test%init()
     test%tolerance64=1.d-8
     !
-#if defined(__MPI)    
+#if defined(__MPI)
     world_group = MPI_COMM_WORLD
 #endif
     CALL mp_world_start(world_group)
@@ -128,7 +128,9 @@ program test_diaghg_4
         !
         v = (0.d0, 0.d0)
         e = 0.d0
+        !$omp target data map(tofrom:hdst, sdst, vdst, e)
         CALL pdiaghg( n, hdst, sdst, nrdst, e, vdst, idesc, .true. )
+        !$omp end target data
         !
  !       DO j = 1, m
             !CALL test%assert_close( v(1:n, j), v_save(1:n, j))
@@ -148,7 +150,7 @@ program test_diaghg_4
     implicit none
     !
     TYPE(tester_t) :: test
-    ! 
+    !
     integer :: ldh, n, m
     complex(DP), allocatable :: h(:,:), hdst(:,:) !< full and distributed Hpsi
     complex(DP), allocatable :: h_save(:,:)       !< full Hpsi, used to check consistence across calls
@@ -223,7 +225,9 @@ program test_diaghg_4
         !
         v = (0.d0, 0.d0)
         e = 0.d0
+        !$omp target data map(tofrom:hdst, sdst, vdst, e)
         CALL pdiaghg( n, hdst, sdst, nrdst, e, vdst, idesc, .true. )
+        !$omp end target data
         !
         DO j = 1, m
             !CALL test%assert_close( v(1:n, j), v_save(1:n, j))
@@ -236,7 +240,7 @@ program test_diaghg_4
   END SUBROUTINE parallel_complex_1
   !
   SUBROUTINE init_parallel_diag(desc, n)
-  
+
       USE mp_world, ONLY : mpime, nproc, world_comm
       USE laxlib_processors_grid, ONLY : ortho_parent_comm
       USE laxlib_descriptor, ONLY : la_descriptor, descla_init
@@ -306,9 +310,9 @@ program test_diaghg_4
       ortho_comm_id = 1
 #endif
       CALL descla_init( desc, n, n, np_ortho, me_ortho, ortho_comm, -1, ortho_comm_id )
-      
+
   END SUBROUTINE init_parallel_diag
-  
+
 end program test_diaghg_4
 #else
 program test_diaghg_4
