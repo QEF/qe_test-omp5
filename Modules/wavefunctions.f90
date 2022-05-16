@@ -63,9 +63,14 @@
        IF( ALLOCATED( c0_bgrp ) ) DEALLOCATE( c0_bgrp )
        IF( ALLOCATED( cm_bgrp ) ) DEALLOCATE( cm_bgrp )
        IF( ALLOCATED( phi ) ) DEALLOCATE( phi )
-       IF( ALLOCATED( psic_nc ) ) DEALLOCATE( psic_nc )
-       !$omp target exit data map(delete:psic)
-       IF( ALLOCATED( psic ) ) DEALLOCATE( psic )
+       IF( ALLOCATED( psic_nc ) ) THEN
+               !$omp target exit data map(delete:psic_nc)
+               DEALLOCATE( psic_nc )
+       ENDIF
+       IF( ALLOCATED( psic ) ) THEN
+               !$omp target exit data map(delete:psic)
+               DEALLOCATE( psic )
+       ENDIF
        IF( ALLOCATED( evc ) ) DEALLOCATE( evc )
 #if defined (__CUDA)
        IF( ALLOCATED( c0_d ) ) DEALLOCATE( c0_d )

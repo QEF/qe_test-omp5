@@ -41,7 +41,7 @@ SUBROUTINE fft_gradient_r2r( dfft, a, g, ga )
   !
   USE kinds,           ONLY : DP
   USE cell_base,       ONLY : tpiba
-  USE fft_interfaces,  ONLY : fwfft, invfft , FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces,  ONLY : fwfft, invfft 
   USE fft_types,       ONLY : fft_type_descriptor
   !
   IMPLICIT NONE
@@ -67,7 +67,7 @@ SUBROUTINE fft_gradient_r2r( dfft, a, g, ga )
   !
   ! ... bring a(r) to G-space, a(G) ...
   !
-  CALL fwfft (FFT_RHO_KIND, aux, dfft)
+  CALL fwfft ('Rho', aux, dfft)
   !
   ! ... multiply by (iG) to get (\grad_ipol a)(G) ...
   !
@@ -87,7 +87,7 @@ SUBROUTINE fft_gradient_r2r( dfft, a, g, ga )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r) ...
      !
-     CALL invfft (FFT_RHO_KIND, gaux, dfft)
+     CALL invfft ('Rho', gaux, dfft)
      !
      ! ...and add the factor 2\pi/a  missing in the definition of G
      !
@@ -111,7 +111,7 @@ SUBROUTINE fft_qgradient( dfft, a, xq, g, ga )
   USE kinds,     ONLY: dp
   USE cell_base, ONLY: tpiba
   USE fft_types, ONLY : fft_type_descriptor
-  USE fft_interfaces, ONLY: fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY: fwfft, invfft
   !
   IMPLICIT NONE
   !
@@ -137,7 +137,7 @@ SUBROUTINE fft_qgradient( dfft, a, xq, g, ga )
   ! bring a(r) to G-space, a(G) ...
   aux (:) = a(:)
 
-  CALL fwfft (FFT_RHO_KIND, aux, dfft)
+  CALL fwfft ('Rho', aux, dfft)
   ! multiply by i(q+G) to get (\grad_ipol a)(q+G) ...
   DO ipol = 1, 3
      gaux (:) = (0.0_dp, 0.0_dp)
@@ -148,7 +148,7 @@ SUBROUTINE fft_qgradient( dfft, a, xq, g, ga )
      END DO
      ! bring back to R-space, (\grad_ipol a)(r) ...
 
-     CALL invfft (FFT_RHO_KIND, gaux, dfft)
+     CALL invfft ('Rho', gaux, dfft)
      ! ...and add the factor 2\pi/a  missing in the definition of q+G
      DO n = 1, dfft%nnr
         ga (ipol,n) = gaux (n) * tpiba
@@ -170,7 +170,7 @@ SUBROUTINE fft_gradient_g2r( dfft, a, g, ga )
   !
   USE cell_base,      ONLY : tpiba
   USE kinds,          ONLY : DP
-  USE fft_interfaces, ONLY : invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : invfft
   USE fft_types,      ONLY : fft_type_descriptor
   !
   IMPLICIT NONE
@@ -211,10 +211,7 @@ SUBROUTINE fft_gradient_g2r( dfft, a, g, ga )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r) ...
      !
-     !$omp target data map(tofrom:gaux)
-     !$omp dispatch
-     CALL invfft (FFT_RHO_KIND, gaux, dfft)
-     !$omp end target data
+     CALL invfft ('Rho', gaux, dfft)
      !
      ! ... bring back to R-space, (\grad_ipol a)(r)
      ! ... add the factor 2\pi/a  missing in the definition of q+G
@@ -234,10 +231,7 @@ SUBROUTINE fft_gradient_g2r( dfft, a, g, ga )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r) ...
      !
-     !$omp target data map(tofrom:gaux)
-     !$omp dispatch
-     CALL invfft (FFT_RHO_KIND, gaux, dfft)
-     !$omp end target data
+     CALL invfft ('Rho', gaux, dfft)
      !
      ! ...and add the factor 2\pi/a  missing in the definition of G
      !
@@ -255,10 +249,7 @@ SUBROUTINE fft_gradient_g2r( dfft, a, g, ga )
         !
         ! ... bring back to R-space, (\grad_ipol a)(r) ...
         !
-        !$omp target data map(tofrom:gaux)
-        !$omp dispatch
-        CALL invfft (FFT_RHO_KIND, gaux, dfft)
-        !$omp end target data
+        CALL invfft ('Rho', gaux, dfft)
         !
         ! ...and add the factor 2\pi/a  missing in the definition of G
         !
@@ -282,7 +273,7 @@ SUBROUTINE fft_gradient_g2r_gpu( dfft, a_d, g_d, ga_d )
   !
   USE cell_base,      ONLY : tpiba
   USE kinds,          ONLY : DP
-  USE fft_interfaces, ONLY : invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : invfft
   USE fft_types,      ONLY : fft_type_descriptor
   !
   IMPLICIT NONE
@@ -339,7 +330,7 @@ SUBROUTINE fft_gradient_g2r_gpu( dfft, a_d, g_d, ga_d )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r) ...
      !
-     CALL invfft( FFT_RHO_KIND, gaux_d, dfft )
+     CALL invfft( 'Rho', gaux_d, dfft )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r)
      ! ... add the factor 2\pi/a  missing in the definition of q+G
@@ -366,7 +357,7 @@ SUBROUTINE fft_gradient_g2r_gpu( dfft, a_d, g_d, ga_d )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r) ...
      !
-     CALL invfft( FFT_RHO_KIND, gaux_d, dfft )
+     CALL invfft( 'Rho', gaux_d, dfft )
      !
      ! ...and add the factor 2\pi/a  missing in the definition of G
      !
@@ -394,7 +385,7 @@ SUBROUTINE fft_gradient_g2r_gpu( dfft, a_d, g_d, ga_d )
         !
         ! ... bring back to R-space, (\grad_ipol a)(r) ...
         !
-        CALL invfft( FFT_RHO_KIND, gaux_d, dfft )
+        CALL invfft( 'Rho', gaux_d, dfft )
         !
         ! ...and add the factor 2\pi/a  missing in the definition of G
         !
@@ -426,7 +417,7 @@ SUBROUTINE fft_graddot( dfft, a, g, da )
   !
   USE cell_base,      ONLY : tpiba
   USE kinds,          ONLY : DP
-  USE fft_interfaces, ONLY : fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : fwfft, invfft
   USE fft_types,      ONLY : fft_type_descriptor
   !
   IMPLICIT NONE
@@ -460,10 +451,7 @@ SUBROUTINE fft_graddot( dfft, a, g, da )
      !
      ! ... bring a(ipol,r) to G-space, a(G) ...
      !
-     !$omp target data map(tofrom:aux)
-     !$omp dispatch
-     CALL fwfft (FFT_RHO_KIND, aux, dfft)
-     !$omp end target data
+     CALL fwfft ('Rho', aux, dfft)
      !
      ! ... multiply by iG to get the gradient in G-space
      !
@@ -483,10 +471,7 @@ SUBROUTINE fft_graddot( dfft, a, g, da )
      !
      ! ... bring a(ipol,r) to G-space, a(G) ...
      !
-     !$omp target data map(tofrom:aux)
-     !$omp dispatch
-     CALL fwfft (FFT_RHO_KIND, aux, dfft)
-     !$omp end target data
+     CALL fwfft ('Rho', aux, dfft)
      !
      ! ... multiply by iG to get the gradient in G-space
      ! ... fill both gaux(G) and gaux(-G) = gaux*(G)
@@ -506,10 +491,7 @@ SUBROUTINE fft_graddot( dfft, a, g, da )
         !
         ! ... bring a(ipol,r) to G-space, a(G) ...
         !
-        !$omp target data map(tofrom:aux)
-        !$omp dispatch
-        CALL fwfft (FFT_RHO_KIND, aux, dfft)
-        !$omp end target data
+        CALL fwfft ('Rho', aux, dfft)
         !
         ! ... multiply by iG to get the gradient in G-space
         !
@@ -525,7 +507,7 @@ SUBROUTINE fft_graddot( dfft, a, g, da )
   !
   ! ... bring back to R-space, (\grad_ipol a)(r) ...
   !
-  CALL invfft (FFT_RHO_KIND, gaux, dfft)
+  CALL invfft ('Rho', gaux, dfft)
   !
   ! ... add the factor 2\pi/a  missing in the definition of G and sum
   !
@@ -545,7 +527,7 @@ SUBROUTINE fft_graddot_gpu( dfft, a_d, g_d, da_d )
   !
   USE cell_base,      ONLY : tpiba
   USE kinds,          ONLY : DP
-  USE fft_interfaces, ONLY : fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : fwfft, invfft
   USE fft_types,      ONLY : fft_type_descriptor
   !
   IMPLICIT NONE
@@ -596,7 +578,7 @@ SUBROUTINE fft_graddot_gpu( dfft, a_d, g_d, da_d )
      !
      ! ... bring a(ipol,r) to G-space, a(G) ...
      !
-     CALL fwfft( FFT_RHO_KIND, aux_d, dfft )
+     CALL fwfft( 'Rho', aux_d, dfft )
      !
      ! ... multiply by iG to get the gradient in G-space
      !
@@ -619,7 +601,7 @@ SUBROUTINE fft_graddot_gpu( dfft, a_d, g_d, da_d )
      !
      ! ... bring a(ipol,r) to G-space, a(G) ...
      !
-     CALL fwfft( FFT_RHO_KIND, aux_d, dfft )
+     CALL fwfft( 'Rho', aux_d, dfft )
      !
      ! ... multiply by iG to get the gradient in G-space
      ! ... fill both gaux(G) and gaux(-G) = gaux*(G)
@@ -643,7 +625,7 @@ SUBROUTINE fft_graddot_gpu( dfft, a_d, g_d, da_d )
         !
         ! ... bring a(ipol,r) to G-space, a(G) ...
         !
-        CALL fwfft( FFT_RHO_KIND, aux_d, dfft )
+        CALL fwfft( 'Rho', aux_d, dfft )
         !
         ! ... multiply by iG to get the gradient in G-space
         !
@@ -660,7 +642,7 @@ SUBROUTINE fft_graddot_gpu( dfft, a_d, g_d, da_d )
   !
   ! ... bring back to R-space, (\grad_ipol a)(r) ...
   !
-  CALL invfft( FFT_RHO_KIND, gaux_d, dfft )
+  CALL invfft( 'Rho', gaux_d, dfft )
   !
   ! ... add the factor 2\pi/a  missing in the definition of G and sum
   !
@@ -690,7 +672,7 @@ SUBROUTINE fft_qgraddot ( dfft, a, xq, g, da)
   !
   USE kinds,          ONLY : DP
   USE cell_base,      ONLY : tpiba
-  USE fft_interfaces, ONLY : fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : fwfft, invfft
   USE fft_types,      ONLY : fft_type_descriptor
   !
   IMPLICIT NONE
@@ -719,7 +701,7 @@ SUBROUTINE fft_qgraddot ( dfft, a, xq, g, da)
         aux (n) = a (ipol, n)
      END DO
      ! bring a(ipol,r) to G-space, a(G) ...
-     CALL fwfft (FFT_RHO_KIND, aux, dfft)
+     CALL fwfft ('Rho', aux, dfft)
      ! multiply by i(q+G) to get (\grad_ipol a)(q+G) ...
      DO n = 1, dfft%ngm
         da (dfft%nl(n)) = da (dfft%nl(n)) + &
@@ -732,7 +714,7 @@ SUBROUTINE fft_qgraddot ( dfft, a, xq, g, da)
      END DO
   END IF
   !  bring back to R-space, (\grad_ipol a)(r) ...
-  CALL invfft (FFT_RHO_KIND, da, dfft)
+  CALL invfft ('Rho', da, dfft)
   ! ...add the factor 2\pi/a  missing in the definition of q+G
   da (:) = da (:) * tpiba
 
@@ -778,7 +760,7 @@ SUBROUTINE fft_laplacian( dfft, a, gg, lapla )
   USE kinds,          ONLY : DP
   USE cell_base,      ONLY : tpiba2
   USE fft_types,      ONLY : fft_type_descriptor
-  USE fft_interfaces, ONLY : fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : fwfft, invfft
   !
   IMPLICIT NONE
   !
@@ -804,7 +786,7 @@ SUBROUTINE fft_laplacian( dfft, a, gg, lapla )
   !
   ! ... bring a(r) to G-space, a(G) ...
   !
-  CALL fwfft (FFT_RHO_KIND, aux, dfft)
+  CALL fwfft ('Rho', aux, dfft)
   !
   ! ... Compute the laplacian
   !
@@ -825,7 +807,7 @@ SUBROUTINE fft_laplacian( dfft, a, gg, lapla )
   !
   ! ... bring back to R-space, (\lapl a)(r) ...
   !
-  CALL invfft (FFT_RHO_KIND, laux, dfft)
+  CALL invfft ('Rho', laux, dfft)
   !
   ! ... add the missing factor (2\pi/a)^2 in G
   !
@@ -850,7 +832,7 @@ SUBROUTINE fft_hessian_g2r ( dfft, a, g, ha )
   USE kinds,                  ONLY : DP
   USE cell_base,              ONLY : tpiba
   USE fft_types,              ONLY : fft_type_descriptor
-  USE fft_interfaces,         ONLY : fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces,         ONLY : fwfft, invfft
   USE fft_helper_subroutines, ONLY : fftx_oned2threed
   !
   IMPLICIT NONE
@@ -881,7 +863,7 @@ SUBROUTINE fft_hessian_g2r ( dfft, a, g, ha )
      haux(ig,2) = -tpiba**2*g(1,ig)*g(2,ig)*a(ig)
   END DO
   CALL fftx_oned2threed( dfft, aux, haux(:,1), haux(:,2) )
-  CALL invfft(FFT_RHO_KIND, aux, dfft)
+  CALL invfft('Rho', aux, dfft)
   DO ir=1,dfft%nnr
      ha(1,ir) = DBLE(aux(ir))
      ha(2,ir) =AIMAG(aux(ir))
@@ -892,7 +874,7 @@ SUBROUTINE fft_hessian_g2r ( dfft, a, g, ha )
      haux(ig,2) = -tpiba**2*g(1,ig)*g(3,ig)*a(ig)
   END DO
   CALL fftx_oned2threed( dfft, aux, haux(:,1), haux(:,2) )
-  CALL invfft(FFT_RHO_KIND, aux, dfft)
+  CALL invfft('Rho', aux, dfft)
   DO ir=1,dfft%nnr
      ha(3,ir) = DBLE(aux(ir))
      ha(4,ir) =AIMAG(aux(ir))
@@ -903,7 +885,7 @@ SUBROUTINE fft_hessian_g2r ( dfft, a, g, ha )
      haux(ig,2) = -tpiba**2*g(3,ig)**2     *a(ig)
   END DO
   CALL fftx_oned2threed( dfft, aux, haux(:,1), haux(:,2) )
-  CALL invfft(FFT_RHO_KIND, aux, dfft)
+  CALL invfft('Rho', aux, dfft)
   DO ir=1,dfft%nnr
      ha(5,ir) = DBLE(aux(ir))
      ha(6,ir) =AIMAG(aux(ir))
@@ -921,7 +903,7 @@ SUBROUTINE fft_hessian( dfft, a, g, ga, ha )
   USE kinds,          ONLY : DP
   USE cell_base,      ONLY : tpiba
   USE fft_types,      ONLY : fft_type_descriptor
-  USE fft_interfaces, ONLY : fwfft, invfft, FFT_RHO_KIND, FFT_WAVE_KIND, FFT_TGWAVE_KIND
+  USE fft_interfaces, ONLY : fwfft, invfft
   !
   IMPLICIT NONE
   !
@@ -950,7 +932,7 @@ SUBROUTINE fft_hessian( dfft, a, g, ga, ha )
   !
   ! ... bring a(r) to G-space, a(G) ...
   !
-  CALL fwfft (FFT_RHO_KIND, aux, dfft)
+  CALL fwfft ('Rho', aux, dfft)
   !
   ! ... multiply by (iG) to get (\grad_ipol a)(G) ...
   !
@@ -970,7 +952,7 @@ SUBROUTINE fft_hessian( dfft, a, g, ga, ha )
      !
      ! ... bring back to R-space, (\grad_ipol a)(r) ...
      !
-     CALL invfft (FFT_RHO_KIND, gaux, dfft)
+     CALL invfft ('Rho', gaux, dfft)
      !
      ! ...and add the factor 2\pi/a  missing in the definition of G
      !
@@ -995,7 +977,7 @@ SUBROUTINE fft_hessian( dfft, a, g, ga, ha )
         !
         ! ... bring back to R-space, (\grad_ipol a)(r) ...
         !
-        CALL invfft (FFT_RHO_KIND, haux, dfft)
+        CALL invfft ('Rho', haux, dfft)
         !
         ! ...and add the factor 2\pi/a  missing in the definition of G
         !
