@@ -78,8 +78,13 @@ if(QE_ENABLE_CUDA)
         "enable distributed execution support via OpenMP" ON)
 else()
     option(QE_ENABLE_OPENACC "enable OpenACC acceleration" OFF)
-    option(QE_ENABLE_OPENMP
-        "enable distributed execution support via OpenMP" OFF)
+    if(QE_ENABLE_OPENMP_OFFLOAD)
+        option(QE_ENABLE_OPENMP
+            "enable distributed execution support via OpenMP" ON)
+    else()
+        option(QE_ENABLE_OPENMP
+            "enable distributed execution support via OpenMP" OFF)
+    endif()
 endif()
 option(QE_ENABLE_MPI
     "enable distributed execution support via MPI" ON)
@@ -117,6 +122,7 @@ set(QE_FFTW_VENDOR "AUTO" CACHE
     STRING "select a specific FFTW library [Intel_DFTI, Intel_FFTW3, ArmPL, IBMESSL, FFTW3, Internal]")
 set(QE_ENABLE_SANITIZER "none" CACHE STRING "none,asan,ubsan,tsan,msan")
 set(QE_ENABLE_PLUGINS "" CACHE STRING "Semicolon-separated list of plugins")
+
 if(FOX_ROOT)
     set(QE_FOX_INTERNAL OFF)
 endif()
@@ -166,8 +172,8 @@ if(QE_ENABLE_TRACE)
     qe_add_global_compile_definitions(__TRACE)
 endif()
 if(QE_ENABLE_PROFILE_NVTX)
-   qe_add_global_compile_definitions(__PROFILE_NVTX) 
-endif() 
+   qe_add_global_compile_definitions(__PROFILE_NVTX)
+endif()
 if(QE_ENABLE_MPI_INPLACE)
     qe_add_global_compile_definitions(__USE_INPLACE_MPI)
 endif()
@@ -189,9 +195,6 @@ if(QE_ENABLE_SCALAPACK)
 endif()
 if(QE_ENABLE_HDF5)
     qe_add_global_compile_definitions(__HDF5)
-endif()
-if(QE_ENABLE_ENVIRON)
-    qe_add_global_compile_definitions(__ENVIRON)
 endif()
 
 # Feature checks
@@ -237,7 +240,7 @@ if(NOT QE_ENABLE_SANITIZER STREQUAL "none" AND NOT CMAKE_Fortran_COMPILER_ID MAT
 endif()
 
 # valid plugins checks
-set(VALID_QE_PLUGINS "d3q" "pw2qmcpack")
+set(VALID_QE_PLUGINS "d3q")
 # Perform sanitizer option check, only works in debug mode
 foreach(PLUGIN IN LISTS QE_ENABLE_PLUGINS)
   if(NOT PLUGIN IN_LIST VALID_QE_PLUGINS)
@@ -296,7 +299,10 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "PGI" OR CMAKE_Fortran_COMPILER_ID MATC
     include(NVFortranCompiler)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "XL")
     include(IBMFortranCompiler)
+    #elseif(CMAKE_Fortran_COMPILER_ID MATCHES "IntelLLVM")
+    #include(InteloneAPIFortranCompiler)
 endif()
+include(InteloneAPIFortranCompiler)
 
 if(QE_ENABLE_STATIC_BUILD)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
@@ -658,7 +664,6 @@ add_subdirectory(PWCOND)
 add_subdirectory(TDDFPT)
 add_subdirectory(XSpectra)
 add_subdirectory(QEHeat)
-add_subdirectory(KCW)
 add_subdirectory(GUI)
 if(QE_ENABLE_DOC)
     add_subdirectory(Doc)
