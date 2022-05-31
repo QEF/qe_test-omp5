@@ -13,6 +13,8 @@
 !----------------------------------------------------------------------
 
 #if defined(__CUDA)
+MODULE fft_scatter_omp
+END MODULE fft_scatter_omp
 
 #define __NON_BLOCKING_SCATTER
 
@@ -319,6 +321,7 @@ SUBROUTINE fft_scatter_xy_gpu ( desc, f_in_d, f_aux_d, nxx_, isgn, stream )
 
 20   CONTINUE
 
+
   ENDIF
   !
   !CALL nvtxEndRangeAsync()
@@ -598,6 +601,7 @@ SUBROUTINE fft_scatter_yz_gpu ( desc, f_in_d, f_aux_d, nxx_, isgn )
 
      IF( abs(ierr) /= 0 ) CALL fftx_error__ ('fft_scatter', 'info<>0', abs(ierr) )
 
+
 #endif
      !
      !  step one: store contiguously the columns
@@ -632,6 +636,7 @@ SUBROUTINE fft_scatter_yz_gpu ( desc, f_in_d, f_aux_d, nxx_, isgn )
         ierr = cudaStreamSynchronize(desc%stream_scatter_yz(iproc3))
      END DO
 
+
      ! clean extra array elements in each stick
 
      IF( nr3x /= nr3 ) THEN
@@ -643,6 +648,7 @@ SUBROUTINE fft_scatter_yz_gpu ( desc, f_in_d, f_aux_d, nxx_, isgn )
           END DO
        END DO
      END IF
+
 
 20   CONTINUE
 
@@ -783,6 +789,7 @@ SUBROUTINE fft_scatter_tg_opt_gpu ( desc, f_in_d, f_out_d, nxx_, isgn, stream )
 END SUBROUTINE fft_scatter_tg_opt_gpu
 
 #endif
+
 
 !-----------------------------------------------------------------------
 SUBROUTINE fft_scatter_many_yz_gpu ( desc, f_in_d, f_aux_d, nxx_, isgn, howmany )
@@ -993,6 +1000,7 @@ SUBROUTINE fft_scatter_many_yz_gpu ( desc, f_in_d, f_aux_d, nxx_, isgn, howmany 
 
      IF( abs(ierr) /= 0 ) CALL fftx_error__ ('fft_scatter', 'info<>0', abs(ierr) )
 
+
      !
      !  step one: store contiguously the columns
      !
@@ -1042,11 +1050,13 @@ END MODULE fft_scatter_gpu
 ! defined (__CUDA)
 
 #elif defined(__OPENMP_GPU)
+MODULE fft_scatter_gpu
+END MODULE fft_scatter_gpu
 
 #define __NON_BLOCKING_SCATTER
 
 !=----------------------------------------------------------------------=!
-   MODULE fft_scatter_gpu
+   MODULE fft_scatter_omp
 !=----------------------------------------------------------------------=!
         USE fft_types, ONLY: fft_type_descriptor
         USE fft_param
@@ -1057,9 +1067,9 @@ END MODULE fft_scatter_gpu
         PRIVATE
         !
         PUBLIC :: fft_type_descriptor
-        PUBLIC :: fft_scatter_xy_gpu, fft_scatter_yz_gpu, fft_scatter_tg_gpu, &
-                  fft_scatter_tg_opt_gpu, fft_scatter_many_yz_gpu,                &
-                  fft_scatter_many_xy_gpu
+        PUBLIC :: fft_scatter_xy_omp, fft_scatter_yz_omp, fft_scatter_tg_omp, &
+                  fft_scatter_tg_opt_omp, fft_scatter_many_yz_omp,                &
+                  fft_scatter_many_xy_omp
 
 !=----------------------------------------------------------------------=!
       CONTAINS
@@ -1067,7 +1077,7 @@ END MODULE fft_scatter_gpu
 !
 !
 !-----------------------------------------------------------------------
-SUBROUTINE fft_scatter_xy_gpu ( desc, f_in, f_aux, nxx_, isgn )
+SUBROUTINE fft_scatter_xy_omp ( desc, f_in, f_aux, nxx_, isgn )
   !-----------------------------------------------------------------------
   !
   ! transpose of the fft xy planes across the desc%comm2 communicator
@@ -1320,10 +1330,10 @@ SUBROUTINE fft_scatter_xy_gpu ( desc, f_in, f_aux, nxx_, isgn )
   RETURN
 99 format ( 20 ('(',2f12.9,')') )
 
-END SUBROUTINE fft_scatter_xy_gpu
+END SUBROUTINE fft_scatter_xy_omp
 !
 !-----------------------------------------------------------------------
-SUBROUTINE fft_scatter_yz_gpu ( desc, f_in, f_aux, nxx_, isgn )
+SUBROUTINE fft_scatter_yz_omp ( desc, f_in, f_aux, nxx_, isgn )
   !-----------------------------------------------------------------------
   !
   ! transpose of the fft yz planes across the desc%comm3 communicator
@@ -1607,10 +1617,10 @@ SUBROUTINE fft_scatter_yz_gpu ( desc, f_in, f_aux, nxx_, isgn )
 98 format ( 10 ('(',2f12.9,')') )
 99 format ( 20 ('(',2f12.9,')') )
 
-END SUBROUTINE fft_scatter_yz_gpu
+END SUBROUTINE fft_scatter_yz_omp
 !
 !-----------------------------------------------------------------------
-SUBROUTINE fft_scatter_tg_gpu ( desc, f_in, f_aux, nxx_, isgn )
+SUBROUTINE fft_scatter_tg_omp ( desc, f_in, f_aux, nxx_, isgn )
   !-----------------------------------------------------------------------
   !
   ! task group wavefunction redistribution
@@ -1659,10 +1669,10 @@ SUBROUTINE fft_scatter_tg_gpu ( desc, f_in, f_aux, nxx_, isgn )
   RETURN
 99 format ( 20 ('(',2f12.9,')') )
 
-END SUBROUTINE fft_scatter_tg_gpu
+END SUBROUTINE fft_scatter_tg_omp
 !
 !-----------------------------------------------------------------------
-SUBROUTINE fft_scatter_tg_opt_gpu ( desc, f_in, f_out, nxx_, isgn )
+SUBROUTINE fft_scatter_tg_opt_omp ( desc, f_in, f_out, nxx_, isgn )
   !-----------------------------------------------------------------------
   !
   ! task group wavefunction redistribution
@@ -1711,10 +1721,10 @@ SUBROUTINE fft_scatter_tg_opt_gpu ( desc, f_in, f_out, nxx_, isgn )
   RETURN
 99 format ( 20 ('(',2f12.9,')') )
 
-END SUBROUTINE fft_scatter_tg_opt_gpu
+END SUBROUTINE fft_scatter_tg_opt_omp
 !
 !-----------------------------------------------------------------------
-SUBROUTINE fft_scatter_many_xy_gpu ( desc, f_in, f_aux, nxx_, isgn, howmany )
+SUBROUTINE fft_scatter_many_xy_omp ( desc, f_in, f_aux, nxx_, isgn, howmany )
   !-----------------------------------------------------------------------
   !
   ! transpose of the fft xy planes across the desc%comm2 communicator
@@ -1944,10 +1954,10 @@ SUBROUTINE fft_scatter_many_xy_gpu ( desc, f_in, f_aux, nxx_, isgn, howmany )
 98 format ( 10 ('(',2f12.9,')') )
 99 format ( 20 ('(',2f12.9,')') )
 
-END SUBROUTINE fft_scatter_many_xy_gpu
+END SUBROUTINE fft_scatter_many_xy_omp
 !
 !-----------------------------------------------------------------------
-SUBROUTINE fft_scatter_many_yz_gpu ( desc, f_in, f_aux, nxx_, isgn, howmany )
+SUBROUTINE fft_scatter_many_yz_omp ( desc, f_in, f_aux, nxx_, isgn, howmany )
   !-----------------------------------------------------------------------
   !
   ! transpose of the fft yz planes across the desc%comm3 communicator
@@ -2174,10 +2184,10 @@ SUBROUTINE fft_scatter_many_yz_gpu ( desc, f_in, f_aux, nxx_, isgn, howmany )
 98 format ( 10 ('(',2f12.9,')') )
 99 format ( 20 ('(',2f12.9,')') )
 
-END SUBROUTINE fft_scatter_many_yz_gpu
+END SUBROUTINE fft_scatter_many_yz_omp
 
 !=----------------------------------------------------------------------=!
-END MODULE fft_scatter_gpu
+END MODULE fft_scatter_omp
 !=----------------------------------------------------------------------=!
 
 ! defined (__OPENMP_GPU)

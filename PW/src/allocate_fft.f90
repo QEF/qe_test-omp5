@@ -77,7 +77,10 @@ SUBROUTINE allocate_fft
   CALL using_psic(2); CALL using_psic_d(0)
 #endif
   !
-  IF (noncolin) ALLOCATE( psic_nc(dfftp%nnr,npol) )
+  IF (noncolin) THEN
+     ALLOCATE( psic_nc(dfftp%nnr,npol) )
+     !$omp target enter data map(alloc:psic_nc)
+  ENDIF
 #if defined(__CUDA)
   IF (noncolin) THEN
      CALL using_psic_nc(2)
