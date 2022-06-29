@@ -379,7 +379,7 @@ MODULE LAXlib
     !! index of the root processor within a band group
     INTEGER,  INTENT(IN)  :: intra_bgrp_comm
     !! intra band group communicator
-    LOGICAL, OPTIONAL ::  onhost
+    LOGICAL, INTENT(IN) ::  onhost
     !
     REAL(DP), ALLOCATABLE :: v(:,:), h(:,:), s(:,:)
     REAL(DP), ALLOCATABLE :: e(:)
